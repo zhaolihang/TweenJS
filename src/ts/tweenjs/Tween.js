@@ -33,11 +33,8 @@ var gg;
         __extends(Tween, _super);
         function Tween(target, props) {
             var _this = _super.call(this, props) || this;
-            // tiny api (primarily for tool output):
-            _this.w = Tween.prototype.wait;
-            _this.t = Tween.prototype.to;
-            _this.c = Tween.prototype.call;
-            _this.s = Tween.prototype.set;
+            _this._next = null;
+            _this._prev = null;
             _this.pluginData = null;
             _this.target = target;
             _this.passive = false;
@@ -281,7 +278,7 @@ var gg;
                     v = v0 + (v1 - v0) * ratio;
                 }
                 else {
-                    v = ratio >= 1 ? v1 : v0;
+                    v = ratio >= 1 ? v1 : v0; // 瞬时值
                 }
                 if (plugins) {
                     for (var i = 0, l = plugins.length; i < l; i++) {
@@ -425,5 +422,10 @@ var gg;
         return Tween;
     }(gg.AbstractTween));
     gg.Tween = Tween;
+    // tiny api (primarily for tool output):
+    Tween.prototype.w = Tween.prototype.wait;
+    Tween.prototype.t = Tween.prototype.to;
+    Tween.prototype.c = Tween.prototype.call;
+    Tween.prototype.s = Tween.prototype.set;
 })(gg || (gg = {}));
 //# sourceMappingURL=Tween.js.map

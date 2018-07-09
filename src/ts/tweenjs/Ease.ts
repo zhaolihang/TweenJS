@@ -1,4 +1,7 @@
 namespace gg {
+
+	export type EaseFun = (t: number) => number;
+
 	export class Ease {
 		static bounceOut: (arg0: any) => any;
 		static linear: (t: any) => any;

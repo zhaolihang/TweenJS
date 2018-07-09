@@ -1,9 +1,9 @@
 namespace gg {
 	export class TweenGroup {
-		_tweens: any[];
-		__onComplete: any;
+		_tweens: (Tween | TweenGroup)[];
+		__onComplete: FreeFuncionType;
 		_paused: boolean;
-		_timeScale: any;
+		_timeScale: number;
 		constructor(paused: boolean, timeScale: number) {
 			this._tweens = [];
 			this.paused = paused;
@@ -11,7 +11,7 @@ namespace gg {
 			this.__onComplete = this._onComplete.bind(this);
 		}
 
-		_setPaused(value) {
+		_setPaused(value: boolean) {
 			var tweens = this._tweens;
 			this._paused = value = !!value;
 			for (var i = tweens.length - 1; i >= 0; i--) {
@@ -23,7 +23,7 @@ namespace gg {
 			return this._paused;
 		};
 
-		_setTimeScale(value) {
+		_setTimeScale(value: number) {
 			var tweens = this._tweens;
 			this._timeScale = value = value || null;
 			for (var i = tweens.length - 1; i >= 0; i--) {
@@ -36,7 +36,7 @@ namespace gg {
 		};
 
 
-		set paused(value) {
+		set paused(value: boolean) {
 			this._setPaused(value);
 		}
 
@@ -44,7 +44,7 @@ namespace gg {
 			return this._getPaused();
 		}
 
-		set timeScale(value) {
+		set timeScale(value: number) {
 			this._setTimeScale(value);
 		}
 
@@ -52,11 +52,12 @@ namespace gg {
 			return this._getTimeScale();
 		}
 
-		get(target, props) {
+		get(target: TargetType, props: any) {
 			return this.add(gg.Tween.get(target, props));
 		}
 
-		add(tween) {
+		add(...tweens: (Tween | TweenGroup)[]): (Tween | TweenGroup);
+		add(tween: Tween) {
 			var l = arguments.length, tweens = this._tweens;
 			for (var i = 0, l = arguments.length; i < l; i++) {
 				tween = arguments[i];
@@ -68,21 +69,21 @@ namespace gg {
 			return arguments[l - 1];
 		}
 
-
-		remove(tween) {
+		remove(...tweens: (Tween | TweenGroup)[]): void;
+		remove(tween: (Tween | TweenGroup)) {
 			var l = arguments.length, tweens = this._tweens;
 			for (var i = 0; i < l; i++) {
 				tween = arguments[i];
 				for (var j = tweens.length - 1; j >= 0; j--) {
 					if (tweens[j] === tween) {
 						tweens.splice(j, 1);
-						tween.removeEventListener && tween.removeEventListener("complete", this.__onComplete);
+						(tween as Tween).removeEventListener && (tween as Tween).removeEventListener("complete", this.__onComplete);
 					}
 				}
 			}
 		}
 
-		reset(keepGroups?) {
+		reset(keepGroups?: boolean) {
 			var tweens = this._tweens;
 			for (var i = tweens.length - 1; i >= 0; i--) {
 				var tween = tweens[i];
@@ -92,12 +93,12 @@ namespace gg {
 				}
 				tweens.splice(i, 1);
 				tween.paused = true;
-				tween.removeEventListener && tween.removeEventListener("complete", this.__onComplete);
+				(tween as Tween).removeEventListener && (tween as Tween).removeEventListener("complete", this.__onComplete);
 			}
 			return this;
 		}
 
-		_onComplete(evt) {
+		_onComplete(evt: Event) {
 			this.remove(evt.target);
 		}
 	}
