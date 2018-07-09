@@ -2,15 +2,15 @@ namespace gg {
 
 
 	export class TweenStep {
-		next: any;
-		prev: any;
-		t: any;
-		d: any;
+		next: TweenStep;
+		prev: TweenStep;
+		t: number;
+		d: number;
 		props: any;
-		ease: any;
-		passive: any;
-		index: any;
-		constructor(prev, t, d, props, ease, passive) {
+		ease: EaseFun;
+		passive: boolean;
+		index: number;
+		constructor(prev: TweenStep, t: number, d: number, props: any, ease: EaseFun, passive?: boolean) {
 			this.next = null;
 			this.prev = prev;
 			this.t = t;
@@ -25,13 +25,13 @@ namespace gg {
 
 	export class TweenAction {
 		scope: any;
-		funct: any;
 		params: any;
-		next: any;
-		prev: any;
-		t: any;
+		funct: FreeFuncionType;
+		next: TweenAction;
+		prev: TweenAction;
+		t: number;
 		d: number;
-		constructor(prev, t, scope, funct, params) {
+		constructor(prev: TweenAction, t: number, scope: any, funct: FreeFuncionType, params: any) {
 			this.next = null;
 			this.prev = prev;
 			this.t = t;
@@ -42,21 +42,41 @@ namespace gg {
 		}
 	};
 
+	export interface TweenProps extends AbstractTweenProps {
+		pluginData?: any;
+		override?: boolean;
+	}
+
+	export type TargetType = { tweenjs_count?: number } & FreeType;
 
 	export class Tween extends AbstractTween {
 		pluginData: any;
-		target: any;
+		target: TargetType;
 		_stepHead: TweenStep;
-		_stepTail: any;
+		_stepTail: TweenStep;
+
+		_next: Tween;
+		_prev: Tween;
+
 		_stepPosition: number;
-		_actionTail: any;
 		_plugins: any;
 		_pluginIds: any;
+
 		_injected: any;
 		passive: boolean;
+
 		static _inited: boolean;
-		constructor(target, props) {
+
+		w: (duration: number, passive: boolean) => Tween;
+		t: (props: FreeType, duration: number, ease?: EaseFun) => Tween;
+		c: (callback: FreeFuncionType, params: any, scope: any) => Tween;
+		s: (props: any, target: TargetType) => Tween;
+
+		constructor(target: TargetType, props?: TweenProps) {
 			super(props);
+			this._next = null;
+			this._prev = null;
+
 			this.pluginData = null;
 			this.target = target;
 			this.passive = false;
@@ -79,25 +99,17 @@ namespace gg {
 
 
 		static IGNORE = {};
-
-
 		static _tweens = [];
-
-
 		static _plugins = null;
-
-		static _tweenHead = null;
-
-		static _tweenTail = null;
-
+		static _tweenHead: Tween = null;
+		static _tweenTail: Tween = null;
 		static _inTick = 0;
 
-
-		static get(target, props) {
+		static get(target: TargetType, props?: TweenProps) {
 			return new Tween(target, props);
 		};
 
-		static tick(delta, paused) {
+		static tick(delta: number, paused?: boolean) {
 			var tween = Tween._tweenHead;
 			var t = Tween._inTick = Date.now();
 			while (tween) {
@@ -112,13 +124,13 @@ namespace gg {
 			Tween._inTick = 0;
 		};
 
-		static handleEvent(event) {
+		static handleEvent(event: Event & FreeType) {
 			if (event.type === "tick") {
 				this.tick(event.delta, event.paused);
 			}
 		};
 
-		static removeTweens(target) {
+		static removeTweens(target: TargetType) {
 			if (!target.tweenjs_count) { return; }
 			var tween = Tween._tweenHead;
 			while (tween) {
@@ -143,12 +155,12 @@ namespace gg {
 		};
 
 
-		static hasActiveTweens(target) {
+		static hasActiveTweens(target: TargetType) {
 			if (target) { return !!target.tweenjs_count; }
 			return !!Tween._tweenHead;
 		};
 
-		static _installPlugin(plugin) {
+		static _installPlugin(plugin: any) {
 			var priority = (plugin.priority = plugin.priority || 0), arr = (Tween._plugins = Tween._plugins || []);
 			for (var i = 0, l = arr.length; i < l; i++) {
 				if (priority < arr[i].priority) { break; }
@@ -156,7 +168,7 @@ namespace gg {
 			arr.splice(i, 0, plugin);
 		};
 
-		static _register(tween, paused) {
+		static _register(tween: Tween, paused: boolean) {
 			var target = tween.target;
 			if (!paused && tween._paused) {
 				// TODO: this approach might fail if a dev is using sealed objects
@@ -178,7 +190,7 @@ namespace gg {
 			tween._paused = paused;
 		};
 
-		static _delist(tween) {
+		static _delist(tween: Tween) {
 			var next = tween._next, prev = tween._prev;
 			if (next) { next._prev = prev; }
 			else { Tween._tweenTail = prev; } // was tail
@@ -188,48 +200,41 @@ namespace gg {
 		}
 
 
-		wait(duration, passive) {
+		wait(duration: number, passive: boolean) {
 			if (duration > 0) { this._addStep(+duration, this._stepTail.props, null, passive); }
 			return this;
 		};
 
 
-		to(props, duration, ease) {
+		to(props: FreeType, duration: number, ease?: EaseFun) {
 			if (duration == null || duration < 0) { duration = 0; }
 			var step = this._addStep(+duration, null, ease);
 			this._appendProps(props, step);
 			return this;
 		};
 
-		label(name) {
+		label(name: string) {
 			this.addLabel(name, this.duration);
 			return this;
 		};
 
 
-		call(callback, params, scope) {
+		call(callback: FreeFuncionType, params: any, scope: any) {
 			return this._addAction(scope || this.target, callback, params || [this]);
 		};
 
 
-		set(props, target) {
+		set(props: any, target: TargetType) {
 			return this._addAction(target || this.target, this._set, [props]);
 		};
 
-
-		play(tween) {
+		play(tween: Tween) {
 			return this._addAction(tween || this, this._set, [{ paused: false }]);
 		};
 
-		pause(tween) {
+		pause(tween: Tween) {
 			return this._addAction(tween || this, this._set, [{ paused: true }]);
 		};
-
-		// tiny api (primarily for tool output):
-		w = Tween.prototype.wait;
-		t = Tween.prototype.to;
-		c = Tween.prototype.call;
-		s = Tween.prototype.set;
 
 		toString() {
 			return "[Tween]";
@@ -240,7 +245,7 @@ namespace gg {
 			throw ("Tween can not be cloned.")
 		};
 
-		_addPlugin(plugin) {
+		_addPlugin(plugin: any) {
 			var ids = this._pluginIds || (this._pluginIds = {}), id = plugin.ID;
 			if (!id || ids[id]) { return; } // already added
 
@@ -255,7 +260,7 @@ namespace gg {
 			plugins.push(plugin);
 		};
 
-		_updatePosition(jump, end) {
+		_updatePosition(jump: boolean, end: boolean) {
 			var step = this._stepHead.next, t = this.position, d = this.duration;
 			if (this.target && step) {
 				// find our new step index:
@@ -268,13 +273,13 @@ namespace gg {
 		};
 
 
-		_updateTargetProps(step, ratio, end) {
+		_updateTargetProps(step: TweenStep, ratio: number, end: boolean) {
 			if (this.passive = !!step.passive) { return; } // don't update props.
 
-			var v, v0, v1, ease;
+			var v, v0, v1, ease: EaseFun;
 			var p0 = step.prev.props;
 			var p1 = step.props;
-			if (ease = step.ease) { ratio = ease(ratio, 0, 1, 1); }
+			if (ease = step.ease) { ratio = (<any>ease)(ratio, 0, 1, 1); }
 
 			var plugins = this._plugins;
 			proploop: for (var n in p0) {
@@ -282,10 +287,10 @@ namespace gg {
 				v1 = p1[n];
 
 				// values are different & it is numeric then interpolate:
-				if (v0 !== v1 && (typeof (v0) === "number")) {
+				if (v0 !== v1 && (typeof (v0) === "number")) {// 数字值
 					v = v0 + (v1 - v0) * ratio;
 				} else {
-					v = ratio >= 1 ? v1 : v0;
+					v = ratio >= 1 ? v1 : v0;// 瞬时值
 				}
 
 				if (plugins) {
@@ -300,7 +305,7 @@ namespace gg {
 
 		};
 
-		_runActionsRange(startPos, endPos, jump, includeStart) {
+		_runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
 			var rev = startPos > endPos;
 			var action = rev ? this._actionTail : this._actionHead;
 			var ePos = endPos, sPos = startPos;
@@ -316,7 +321,7 @@ namespace gg {
 			}
 		};
 
-		_appendProps(props, step, stepPlugins?) {
+		_appendProps(props: any, step: TweenStep, stepPlugins?) {
 			var initProps = this._stepHead.props, target = this.target, plugins = Tween._plugins;
 			var n, i, value, initValue, inject;
 			var oldStep = step.prev, oldProps = oldStep.props;
@@ -373,19 +378,19 @@ namespace gg {
 		};
 
 
-		_injectProp(name, value) {
+		_injectProp(name: string, value: any) {
 			var o = this._injected || (this._injected = {});
 			o[name] = value;
 		};
 
-		_addStep(duration, props, ease, passive?) {
+		_addStep(duration: number, props: any, ease: EaseFun, passive?: boolean) {
 			var step = new TweenStep(this._stepTail, this.duration, duration, props, ease, passive || false);
 			this.duration += duration;
 			return this._stepTail = (this._stepTail.next = step);
 		};
 
 
-		_addAction(scope, funct, params) {
+		_addAction(scope: any, funct: FreeFuncionType, params: any) {
 			var action = new TweenAction(this._actionTail, this.duration, scope, funct, params);
 			if (this._actionTail) { this._actionTail.next = action; }
 			else { this._actionHead = action; }
@@ -405,4 +410,11 @@ namespace gg {
 			return o;
 		};
 	}
+
+
+	// tiny api (primarily for tool output):
+	Tween.prototype.w = Tween.prototype.wait;
+	Tween.prototype.t = Tween.prototype.to;
+	Tween.prototype.c = Tween.prototype.call;
+	Tween.prototype.s = Tween.prototype.set;
 }

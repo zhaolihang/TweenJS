@@ -48,12 +48,6 @@ var gg;
             return tween;
         };
         ;
-        /**
-         * Removes one or more tweens from this timeline.
-         * @method removeTween
-         * @param {Tween} ...tween The tween(s) to remove. Accepts multiple arguments.
-         * @return Boolean Returns `true` if all of the tweens were successfully removed.
-         **/
         Timeline.prototype.removeTween = function (tween) {
             var l = arguments.length;
             if (l > 1) {
@@ -81,11 +75,6 @@ var gg;
             return false;
         };
         ;
-        /**
-         * Recalculates the duration of the timeline. The duration is automatically updated when tweens are added or removed,
-         * but this method is useful if you modify a tween after it was added to the timeline.
-         * @method updateDuration
-         **/
         Timeline.prototype.updateDuration = function () {
             this.duration = 0;
             for (var i = 0, l = this.tweens.length; i < l; i++) {
@@ -100,19 +89,10 @@ var gg;
             }
         };
         ;
-        /**
-        * Returns a string representation of this object.
-        * @method toString
-        * @return {String} a string representation of the instance.
-        **/
         Timeline.prototype.toString = function () {
             return "[Timeline]";
         };
         ;
-        /**
-         * @method clone
-         * @protected
-         **/
         Timeline.prototype.clone = function () {
             throw ("Timeline can not be cloned.");
         };

@@ -1,4 +1,17 @@
 namespace gg {
+	export type FreeFuncionType = (...args) => any;
+
+	export interface AbstractTweenProps {
+		useTicks?: boolean;
+		ignoreGlobalPause?: boolean;
+		loop?: boolean | number;
+		reversed?: boolean;
+		bounce?: boolean;
+		timeScale?: number;
+		onChange?: FreeFuncionType;
+		onComplete?: FreeFuncionType;
+	}
+
 	export abstract class AbstractTween extends gg.EventDispatcher {
 		ignoreGlobalPause: boolean;
 		loop: number;
@@ -10,16 +23,25 @@ namespace gg {
 		position: number;
 		rawPosition: number;
 		_paused: boolean;
-		_next: AbstractTween;
-		_prev: AbstractTween;
-		_parent: any;
-		_labels: any;
-		_labelList: any;
+
+		_parent: Timeline;
+		_labels: { [lable: string]: number };
+		_labelList?: { label: string, position: number }[];
+
+		/*
+		* Status in tick list:
+		* 0 = in list
+		* 1 = added to list in the current tick stack
+		* -1 = remvoed from list (or to be removed in this tick stack)
+		*/
 		_status: number;
 		_lastTick: number;
-		_actionHead: any;
-		tweens: any;
-		constructor(props?) {
+
+		_actionHead: TweenAction;
+		_actionTail: TweenAction;
+
+		tweens: AbstractTween[];
+		constructor(props?: AbstractTweenProps) {
 			super();
 
 			this.ignoreGlobalPause = false;
@@ -32,8 +54,6 @@ namespace gg {
 			this.position = 0;
 			this.rawPosition = -1;
 			this._paused = true;
-			this._next = null;
-			this._prev = null;
 			this._parent = null;
 			this._labels = null;
 			this._labelList = null;
@@ -64,8 +84,8 @@ namespace gg {
 			return this._getCurrentLabel();
 		}
 
-		_setPaused(value) {
-			Tween._register(this, value);
+		_setPaused(value: boolean) {
+			Tween._register(<any>this, value);
 			return this;
 		};
 
@@ -80,11 +100,11 @@ namespace gg {
 			return (i === 0) ? null : labels[i - 1].label;
 		};
 
-		advance(delta, ignoreActions) {
+		advance(delta: number, ignoreActions?: boolean) {
 			this.setPosition(this.rawPosition + delta * this.timeScale, ignoreActions);
 		};
 
-		setPosition(rawPosition, ignoreActions?, jump?, callback?) {
+		setPosition(rawPosition: number, ignoreActions?: boolean, jump?: boolean, callback?) {
 			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
 			var loop = 0, t = 0, end = false;
 
@@ -96,7 +116,7 @@ namespace gg {
 				end = true;
 				if (prevRawPos !== -1) { return end; } // we can avoid doing anything else if we're already at 0.
 			} else {
-				loop = rawPosition / d | 0;
+				loop = rawPosition / d | 0;// 向下取整
 				t = rawPosition - loop * d;
 
 				end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
@@ -121,7 +141,8 @@ namespace gg {
 			this.dispatchEvent("change");
 			if (end) { this.dispatchEvent("complete"); }
 		};
-		calculatePosition(rawPosition) {
+
+		calculatePosition(rawPosition: number) {
 			// largely duplicated from setPosition, but necessary to avoid having to instantiate generic objects to pass values (end, loop, position) back.
 			var d = this.duration, loopCount = this.loop, loop = 0, t = 0;
 
@@ -147,11 +168,12 @@ namespace gg {
 			return list;
 		};
 
-		setLabels(labels) {
+		setLabels(labels: { [lable: string]: number }) {
 			this._labels = labels;
 			this._labelList = null;
 		};
-		addLabel(label, position) {
+
+		addLabel(label: string, position: number) {
 			if (!this._labels) { this._labels = {}; }
 			this._labels[label] = position;
 			var list = this._labelList;
@@ -160,16 +182,18 @@ namespace gg {
 				list.splice(i, 0, { label: label, position: position });
 			}
 		};
-		gotoAndPlay(positionOrLabel) {
+
+		gotoAndPlay(positionOrLabel: number | string) {
 			this.paused = false;
 			this._goto(positionOrLabel);
 		};
-		gotoAndStop(positionOrLabel) {
+
+		gotoAndStop(positionOrLabel: number | string) {
 			this.paused = true;
 			this._goto(positionOrLabel);
 		};
 
-		resolve(positionOrLabel) {
+		resolve(positionOrLabel: number | string) {
 			var pos = Number(positionOrLabel);
 			if (isNaN(pos)) { pos = this._labels && this._labels[positionOrLabel]; }
 			return pos;
@@ -188,14 +212,14 @@ namespace gg {
 			if (props && (props.position != null)) { this.setPosition(props.position); }
 		};
 
-		_updatePosition(jump, end) {
+		_updatePosition(jump: boolean, end: boolean) {
 			// abstract.
 		};
-		_goto(positionOrLabel) {
+		_goto(positionOrLabel: number | string) {
 			var pos = this.resolve(positionOrLabel);
 			if (pos != null) { this.setPosition(pos, false, true); }
 		};
-		_runActions(startRawPos, endRawPos, jump, includeStart) {
+		_runActions(startRawPos: number, endRawPos: number, jump?: boolean, includeStart?: boolean) {
 			// runs actions between startPos & endPos. Separated to support action deferral.
 
 			//console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
@@ -205,7 +229,7 @@ namespace gg {
 			if (!this._actionHead && !this.tweens) { return; }
 
 			var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
-			var loop0, loop1, t0, t1;
+			var loop0: number, loop1: number, t0: number, t1: number;
 
 			if (d === 0) {
 				// deal with 0 length tweens:
@@ -248,7 +272,7 @@ namespace gg {
 			} while ((dir && ++loop <= loop1) || (!dir && --loop >= loop1));
 		};
 
-		_runActionsRange(startPos, endPos, jump, includeStart) {
+		_runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
 			// abstract
 		};
 	}

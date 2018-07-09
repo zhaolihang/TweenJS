@@ -47,7 +47,7 @@ namespace gg {
 			}, useCapture);
 		};
 
-		removeEventListener(type: string, listener, useCapture: boolean) {
+		removeEventListener(type: string, listener, useCapture?: boolean) {
 			var listeners = useCapture ? this._captureListeners : this._listeners;
 			if (!listeners) { return; }
 			var arr = listeners[type];

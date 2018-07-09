@@ -14,8 +14,6 @@ var gg;
             _this.position = 0;
             _this.rawPosition = -1;
             _this._paused = true;
-            _this._next = null;
-            _this._prev = null;
             _this._parent = null;
             _this._labels = null;
             _this._labelList = null;
@@ -91,7 +89,7 @@ var gg;
                 } // we can avoid doing anything else if we're already at 0.
             }
             else {
-                loop = rawPosition / d | 0;
+                loop = rawPosition / d | 0; // 向下取整
                 t = rawPosition - loop * d;
                 end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
                 if (end) {

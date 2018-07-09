@@ -1,10 +1,14 @@
 namespace gg {
+
+
+	export interface TimelineProps extends AbstractTweenProps {
+		tweens?: AbstractTween[];
+		labels?: { [lable: string]: number };
+	}
+
 	export class Timeline extends AbstractTween {
-		constructor(props?: {
-			tweens?: any;
-			labels?: any;
-		}) {
-			var tweens, labels;
+		constructor(props?: TimelineProps) {
+			var tweens: AbstractTween[], labels: { [lable: string]: number };
 			if (props) {
 				tweens = props.tweens;
 				labels = props.labels;
@@ -16,8 +20,8 @@ namespace gg {
 			this._init(props);
 		}
 
-
-		addTween(tween) {
+		addTween(...tweens: AbstractTween[]): AbstractTween;
+		addTween(tween: AbstractTween): AbstractTween {
 			if (tween._parent) { tween._parent.removeTween(tween); }
 
 			var l = arguments.length;
@@ -37,13 +41,8 @@ namespace gg {
 			return tween;
 		};
 
-		/**
-		 * Removes one or more tweens from this timeline.
-		 * @method removeTween
-		 * @param {Tween} ...tween The tween(s) to remove. Accepts multiple arguments.
-		 * @return Boolean Returns `true` if all of the tweens were successfully removed.
-		 **/
-		removeTween(tween) {
+		removeTween(...tweens: AbstractTween[]): boolean;
+		removeTween(tween: AbstractTween): boolean {
 			var l = arguments.length;
 			if (l > 1) {
 				var good = true;
@@ -64,11 +63,6 @@ namespace gg {
 			return false;
 		};
 
-		/**
-		 * Recalculates the duration of the timeline. The duration is automatically updated when tweens are added or removed,
-		 * but this method is useful if you modify a tween after it was added to the timeline.
-		 * @method updateDuration
-		 **/
 		updateDuration() {
 			this.duration = 0;
 			for (var i = 0, l = this.tweens.length; i < l; i++) {
@@ -79,19 +73,10 @@ namespace gg {
 			}
 		};
 
-		/**
-		* Returns a string representation of this object.
-		* @method toString
-		* @return {String} a string representation of the instance.
-		**/
 		toString() {
 			return "[Timeline]";
 		};
 
-		/**
-		 * @method clone
-		 * @protected
-		 **/
 		clone() {
 			throw ("Timeline can not be cloned.")
 		};
@@ -99,7 +84,7 @@ namespace gg {
 		// private methods:
 
 		// Docced in AbstractTween
-		_updatePosition(jump, end) {
+		_updatePosition(jump: boolean, end: boolean) {
 			var t = this.position;
 			for (var i = 0, l = this.tweens.length; i < l; i++) {
 				this.tweens[i].setPosition(t, true, jump); // actions will run after all the tweens update.
@@ -107,7 +92,7 @@ namespace gg {
 		};
 
 		// Docced in AbstractTween
-		_runActionsRange(startPos, endPos, jump, includeStart) {
+		_runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
 			//console.log("	range", startPos, endPos, jump, includeStart);
 			var t = this.position;
 			for (var i = 0, l = this.tweens.length; i < l; i++) {
