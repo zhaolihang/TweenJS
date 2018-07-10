@@ -20,6 +20,7 @@ var gg;
     }());
     gg.Ticker = Ticker;
     Ticker.RAF_SYNCHED = "synched";
+    Ticker.TickName = "tick";
     Ticker.RAF = "raf";
     Ticker.TIMEOUT = "timeout";
     Ticker.timingMode = null;
@@ -95,7 +96,7 @@ var gg;
         else {
             clearTimeout(Ticker._timerId);
         }
-        Ticker.removeAllEventListeners("tick");
+        Ticker.removeAllEventListeners(Ticker.TickName);
         Ticker._timerId = Ticker._times = Ticker._tickTimes = null;
         Ticker._startTime = Ticker._lastTime = Ticker._ticks = Ticker._pausedTime = 0;
         Ticker._inited = false;
@@ -174,8 +175,8 @@ var gg;
             Ticker._pausedTicks++;
             Ticker._pausedTime += elapsedTime;
         }
-        if (Ticker.hasEventListener("tick")) {
-            var event = new gg.Event("tick");
+        if (Ticker.hasEventListener(Ticker.TickName)) {
+            var event = new gg.Event(Ticker.TickName);
             var maxDelta = Ticker.maxDelta;
             event.delta = (maxDelta && elapsedTime > maxDelta) ? maxDelta : elapsedTime;
             event.paused = paused;

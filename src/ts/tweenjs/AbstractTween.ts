@@ -13,6 +13,10 @@ namespace gg {
 	}
 
 	export abstract class AbstractTween extends gg.EventDispatcher {
+
+		public static readonly Change = 'change';
+		public static readonly Complete = 'complete';
+
 		ignoreGlobalPause: boolean;
 		loop: number;
 		useTicks: boolean;
@@ -22,23 +26,24 @@ namespace gg {
 		duration: number;
 		position: number;
 		rawPosition: number;
-		_paused: boolean;
 
-		_parent: Timeline;
-		_labels: { [lable: string]: number };
-		_labelList?: { label: string, position: number }[];
+		_paused: boolean;
+		timeline: Timeline;
+
+		private labels: { [lable: string]: number };
+		private labelList?: { label: string, position: number }[];
 
 		/*
 		* Status in tick list:
+		* -1 = remvoed from list (or to be removed in this tick stack)
 		* 0 = in list
 		* 1 = added to list in the current tick stack
-		* -1 = remvoed from list (or to be removed in this tick stack)
 		*/
-		_status: number;
-		_lastTick: number;
+		status: number;
+		lastTick: number;
 
-		_actionHead: TweenAction;
-		_actionTail: TweenAction;
+		actionHead: TweenAction;
+		actionTail: TweenAction;
 
 		tweens: AbstractTween[];
 		constructor(props?: AbstractTweenProps) {
@@ -54,11 +59,11 @@ namespace gg {
 			this.position = 0;
 			this.rawPosition = -1;
 			this._paused = true;
-			this._parent = null;
-			this._labels = null;
-			this._labelList = null;
-			this._status = -1;
-			this._lastTick = 0;
+			this.timeline = null;
+			this.labels = null;
+			this.labelList = null;
+			this.status = -1;
+			this.lastTick = 0;
 
 			if (props) {
 				this.useTicks = !!props.useTicks;
@@ -67,44 +72,35 @@ namespace gg {
 				this.reversed = !!props.reversed;
 				this.bounce = !!props.bounce;
 				this.timeScale = props.timeScale || 1;
-				props.onChange && this.addEventListener("change", props.onChange);
-				props.onComplete && this.addEventListener("complete", props.onComplete);
+				props.onChange && this.addEventListener(AbstractTween.Change, props.onChange);
+				props.onComplete && this.addEventListener(AbstractTween.Complete, props.onComplete);
 			}
 		}
 
 
 		set paused(value) {
-			this._setPaused(value);
+			Tween.register(<any>this, value);
 		}
 		get paused() {
-			return this._getPaused();
+			return this._paused;
 		}
 
 		get currentLabel() {
-			return this._getCurrentLabel();
+			return this.getCurrentLabel();
 		}
 
-		_setPaused(value: boolean) {
-			Tween._register(<any>this, value);
-			return this;
-		};
-
-		_getPaused() {
-			return this._paused;
-		};
-
-		_getCurrentLabel(pos?) {
+		public getCurrentLabel(pos?: number) {
 			var labels = this.getLabels();
 			if (pos == null) { pos = this.position; }
 			for (var i = 0, l = labels.length; i < l; i++) { if (pos < labels[i].position) { break; } }
 			return (i === 0) ? null : labels[i - 1].label;
 		};
 
-		advance(delta: number, ignoreActions?: boolean) {
+		public advance(delta: number, ignoreActions?: boolean) {
 			this.setPosition(this.rawPosition + delta * this.timeScale, ignoreActions);
 		};
 
-		setPosition(rawPosition: number, ignoreActions?: boolean, jump?: boolean, callback?) {
+		public setPosition(rawPosition: number, ignoreActions?: boolean, jump?: boolean, callback?) {
 			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
 			var loop = 0, t = 0, end = false;
 
@@ -131,18 +127,18 @@ namespace gg {
 			this.position = t;
 			this.rawPosition = rawPosition;
 
-			this._updatePosition(jump, end);
+			this.updatePosition(jump, end);
 			if (end) { this.paused = true; }
 
 			callback && callback(this);
 
-			if (!ignoreActions) { this._runActions(prevRawPos, rawPosition, jump, !jump && prevRawPos === -1); }
+			if (!ignoreActions) { this.runActions(prevRawPos, rawPosition, jump, !jump && prevRawPos === -1); }
 
-			this.dispatchEvent("change");
-			if (end) { this.dispatchEvent("complete"); }
+			this.dispatchEvent(AbstractTween.Change);
+			if (end) { this.dispatchEvent(AbstractTween.Complete); }
 		};
 
-		calculatePosition(rawPosition: number) {
+		public calculatePosition(rawPosition: number) {
 			// largely duplicated from setPosition, but necessary to avoid having to instantiate generic objects to pass values (end, loop, position) back.
 			var d = this.duration, loopCount = this.loop, loop = 0, t = 0;
 
@@ -155,11 +151,11 @@ namespace gg {
 			return rev ? d - t : t;
 		};
 
-		getLabels() {
-			var list = this._labelList;
+		public getLabels() {
+			var list = this.labelList;
 			if (!list) {
-				list = this._labelList = [];
-				var labels = this._labels;
+				list = this.labelList = [];
+				var labels = this.labels;
 				for (var n in labels) {
 					list.push({ label: n, position: labels[n] });
 				}
@@ -168,65 +164,67 @@ namespace gg {
 			return list;
 		};
 
-		setLabels(labels: { [lable: string]: number }) {
-			this._labels = labels;
-			this._labelList = null;
+		public setLabels(labels: { [lable: string]: number }) {
+			this.labels = labels;
+			this.labelList = null;
 		};
 
-		addLabel(label: string, position: number) {
-			if (!this._labels) { this._labels = {}; }
-			this._labels[label] = position;
-			var list = this._labelList;
+		public addLabel(label: string, position: number) {
+			if (!this.labels) { this.labels = {}; }
+			this.labels[label] = position;
+			var list = this.labelList;
 			if (list) {
 				for (var i = 0, l = list.length; i < l; i++) { if (position < list[i].position) { break; } }
 				list.splice(i, 0, { label: label, position: position });
 			}
 		};
 
-		gotoAndPlay(positionOrLabel: number | string) {
+		public gotoAndPlay(positionOrLabel: number | string) {
 			this.paused = false;
-			this._goto(positionOrLabel);
+			this.goto(positionOrLabel);
 		};
 
-		gotoAndStop(positionOrLabel: number | string) {
+		public gotoAndStop(positionOrLabel: number | string) {
 			this.paused = true;
-			this._goto(positionOrLabel);
+			this.goto(positionOrLabel);
 		};
 
-		resolve(positionOrLabel: number | string) {
+		public resolve(positionOrLabel: number | string) {
 			var pos = Number(positionOrLabel);
-			if (isNaN(pos)) { pos = this._labels && this._labels[positionOrLabel]; }
+			if (isNaN(pos)) { pos = this.labels && this.labels[positionOrLabel]; }
 			return pos;
 		};
 
-		toString() {
+		public toString() {
 			return "[AbstractTween]";
 		};
 
-		clone() {
+		public clone() {
 			throw ("AbstractTween can not be cloned.")
 		};
 
-		_init(props) {
+		protected init(props) {
 			if (!props || !props.paused) { this.paused = false; }
 			if (props && (props.position != null)) { this.setPosition(props.position); }
 		};
 
-		_updatePosition(jump: boolean, end: boolean) {
+		protected updatePosition(jump: boolean, end: boolean) {
 			// abstract.
 		};
-		_goto(positionOrLabel: number | string) {
+
+		private goto(positionOrLabel: number | string) {
 			var pos = this.resolve(positionOrLabel);
 			if (pos != null) { this.setPosition(pos, false, true); }
 		};
-		_runActions(startRawPos: number, endRawPos: number, jump?: boolean, includeStart?: boolean) {
+
+		public runActions(startRawPos: number, endRawPos: number, jump?: boolean, includeStart?: boolean) {
 			// runs actions between startPos & endPos. Separated to support action deferral.
 
 			//console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
 
 			// if we don't have any actions, and we're not a Timeline, then return:
 			// TODO: a cleaner way to handle this would be to override this method in Tween, but I'm not sure it's worth the overhead.
-			if (!this._actionHead && !this.tweens) { return; }
+			if (!this.actionHead && !this.tweens) { return; }
 
 			var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
 			var loop0: number, loop1: number, t0: number, t1: number;
@@ -249,7 +247,7 @@ namespace gg {
 			}
 
 			// special cases:
-			if (jump) { return this._runActionsRange(t1, t1, jump, includeStart); } // jump.
+			if (jump) { return this.runActionsRange(t1, t1, jump, includeStart); } // jump.
 			else if (loop0 === loop1 && t0 === t1 && !jump && !includeStart) { return; } // no actions if the position is identical and we aren't including the start
 			else if (loop0 === -1) { loop0 = t0 = 0; } // correct the -1 value for first advance, important with useTicks.
 
@@ -266,13 +264,13 @@ namespace gg {
 				}
 
 				if (bounce && loop !== loop0 && start === end) { /* bounced onto the same time/frame, don't re-execute end actions */ }
-				else if (this._runActionsRange(start, end, jump, includeStart || (loop !== loop0 && !bounce))) { return true; }
+				else if (this.runActionsRange(start, end, jump, includeStart || (loop !== loop0 && !bounce))) { return true; }
 
 				includeStart = false;
 			} while ((dir && ++loop <= loop1) || (!dir && --loop >= loop1));
 		};
 
-		_runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
+		protected runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
 			// abstract
 		};
 	}

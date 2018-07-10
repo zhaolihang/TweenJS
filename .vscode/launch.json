@@ -1,0 +1,18 @@
+{
+    "version": "1.4.0",
+    "configurations": [
+        {
+            "name": "Web Debug",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:8888",
+            "sourceMaps": true,
+            "userDataDir": "${workspaceRoot}/.vscode/chrome",
+            // "diagnosticLogging": false,
+            // "sourceMapPathOverrides": {
+            //     "assets/*": "${workspaceRoot}/assets/*"
+            // },
+            "webRoot": "${workspaceRoot}"
+        }
+    ]
+}

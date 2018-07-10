@@ -7,18 +7,6 @@ var gg;
             this.timeScale = timeScale;
             this.__onComplete = this._onComplete.bind(this);
         }
-        TweenGroup.prototype._setPaused = function (value) {
-            var tweens = this._tweens;
-            this._paused = value = !!value;
-            for (var i = tweens.length - 1; i >= 0; i--) {
-                tweens[i].paused = value;
-            }
-        };
-        ;
-        TweenGroup.prototype._getPaused = function () {
-            return this._paused;
-        };
-        ;
         TweenGroup.prototype._setTimeScale = function (value) {
             var tweens = this._tweens;
             this._timeScale = value = value || null;
@@ -33,10 +21,14 @@ var gg;
         ;
         Object.defineProperty(TweenGroup.prototype, "paused", {
             get: function () {
-                return this._getPaused();
+                return this._paused;
             },
             set: function (value) {
-                this._setPaused(value);
+                var tweens = this._tweens;
+                this._paused = value = !!value;
+                for (var i = tweens.length - 1; i >= 0; i--) {
+                    tweens[i].paused = value;
+                }
             },
             enumerable: true,
             configurable: true

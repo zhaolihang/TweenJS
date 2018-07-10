@@ -11,18 +11,6 @@ namespace gg {
 			this.__onComplete = this._onComplete.bind(this);
 		}
 
-		_setPaused(value: boolean) {
-			var tweens = this._tweens;
-			this._paused = value = !!value;
-			for (var i = tweens.length - 1; i >= 0; i--) {
-				tweens[i].paused = value;
-			}
-		};
-
-		_getPaused() {
-			return this._paused;
-		};
-
 		_setTimeScale(value: number) {
 			var tweens = this._tweens;
 			this._timeScale = value = value || null;
@@ -37,11 +25,15 @@ namespace gg {
 
 
 		set paused(value: boolean) {
-			this._setPaused(value);
+			var tweens = this._tweens;
+			this._paused = value = !!value;
+			for (var i = tweens.length - 1; i >= 0; i--) {
+				tweens[i].paused = value;
+			}
 		}
 
 		get paused() {
-			return this._getPaused();
+			return this._paused;
 		}
 
 		set timeScale(value: number) {

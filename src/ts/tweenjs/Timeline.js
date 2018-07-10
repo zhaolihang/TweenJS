@@ -1,3 +1,13 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var gg;
 (function (gg) {
     var Timeline = /** @class */ (function (_super) {
@@ -15,12 +25,12 @@ var gg;
                 _this.addTween.apply(_this, tweens);
             }
             _this.setLabels(labels);
-            _this._init(props);
+            _this.init(props);
             return _this;
         }
         Timeline.prototype.addTween = function (tween) {
-            if (tween._parent) {
-                tween._parent.removeTween(tween);
+            if (tween.timeline) {
+                tween.timeline.removeTween(tween);
             }
             var l = arguments.length;
             if (l > 1) {
@@ -33,7 +43,7 @@ var gg;
                 return null;
             }
             this.tweens.push(tween);
-            tween._parent = this;
+            tween.timeline = this;
             tween.paused = true;
             var d = tween.duration;
             if (tween.loop > 0) {
@@ -65,7 +75,7 @@ var gg;
             while (i--) {
                 if (tweens[i] === tween) {
                     tweens.splice(i, 1);
-                    tween._parent = null;
+                    tween.timeline = null;
                     if (tween.duration >= this.duration) {
                         this.updateDuration();
                     }
@@ -99,7 +109,7 @@ var gg;
         ;
         // private methods:
         // Docced in AbstractTween
-        Timeline.prototype._updatePosition = function (jump, end) {
+        Timeline.prototype.updatePosition = function (jump, end) {
             var t = this.position;
             for (var i = 0, l = this.tweens.length; i < l; i++) {
                 this.tweens[i].setPosition(t, true, jump); // actions will run after all the tweens update.
@@ -107,11 +117,11 @@ var gg;
         };
         ;
         // Docced in AbstractTween
-        Timeline.prototype._runActionsRange = function (startPos, endPos, jump, includeStart) {
+        Timeline.prototype.runActionsRange = function (startPos, endPos, jump, includeStart) {
             //console.log("	range", startPos, endPos, jump, includeStart);
             var t = this.position;
             for (var i = 0, l = this.tweens.length; i < l; i++) {
-                this.tweens[i]._runActions(startPos, endPos, jump, includeStart);
+                this.tweens[i].runActions(startPos, endPos, jump, includeStart);
                 if (t !== this.position) {
                     return true;
                 } // an action changed this timeline's position.

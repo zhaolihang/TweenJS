@@ -1,3 +1,13 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var gg;
 (function (gg) {
     var AbstractTween = /** @class */ (function (_super) {
@@ -14,11 +24,11 @@ var gg;
             _this.position = 0;
             _this.rawPosition = -1;
             _this._paused = true;
-            _this._parent = null;
-            _this._labels = null;
-            _this._labelList = null;
-            _this._status = -1;
-            _this._lastTick = 0;
+            _this.timeline = null;
+            _this.labels = null;
+            _this.labelList = null;
+            _this.status = -1;
+            _this.lastTick = 0;
             if (props) {
                 _this.useTicks = !!props.useTicks;
                 _this.ignoreGlobalPause = !!props.ignoreGlobalPause;
@@ -26,38 +36,29 @@ var gg;
                 _this.reversed = !!props.reversed;
                 _this.bounce = !!props.bounce;
                 _this.timeScale = props.timeScale || 1;
-                props.onChange && _this.addEventListener("change", props.onChange);
-                props.onComplete && _this.addEventListener("complete", props.onComplete);
+                props.onChange && _this.addEventListener(AbstractTween.Change, props.onChange);
+                props.onComplete && _this.addEventListener(AbstractTween.Complete, props.onComplete);
             }
             return _this;
         }
         Object.defineProperty(AbstractTween.prototype, "paused", {
             get: function () {
-                return this._getPaused();
+                return this._paused;
             },
             set: function (value) {
-                this._setPaused(value);
+                gg.Tween.register(this, value);
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(AbstractTween.prototype, "currentLabel", {
             get: function () {
-                return this._getCurrentLabel();
+                return this.getCurrentLabel();
             },
             enumerable: true,
             configurable: true
         });
-        AbstractTween.prototype._setPaused = function (value) {
-            gg.Tween._register(this, value);
-            return this;
-        };
-        ;
-        AbstractTween.prototype._getPaused = function () {
-            return this._paused;
-        };
-        ;
-        AbstractTween.prototype._getCurrentLabel = function (pos) {
+        AbstractTween.prototype.getCurrentLabel = function (pos) {
             var labels = this.getLabels();
             if (pos == null) {
                 pos = this.position;
@@ -106,17 +107,17 @@ var gg;
             // set this in advance in case an action modifies position:
             this.position = t;
             this.rawPosition = rawPosition;
-            this._updatePosition(jump, end);
+            this.updatePosition(jump, end);
             if (end) {
                 this.paused = true;
             }
             callback && callback(this);
             if (!ignoreActions) {
-                this._runActions(prevRawPos, rawPosition, jump, !jump && prevRawPos === -1);
+                this.runActions(prevRawPos, rawPosition, jump, !jump && prevRawPos === -1);
             }
-            this.dispatchEvent("change");
+            this.dispatchEvent(AbstractTween.Change);
             if (end) {
-                this.dispatchEvent("complete");
+                this.dispatchEvent(AbstractTween.Complete);
             }
         };
         ;
@@ -142,10 +143,10 @@ var gg;
         };
         ;
         AbstractTween.prototype.getLabels = function () {
-            var list = this._labelList;
+            var list = this.labelList;
             if (!list) {
-                list = this._labelList = [];
-                var labels = this._labels;
+                list = this.labelList = [];
+                var labels = this.labels;
                 for (var n in labels) {
                     list.push({ label: n, position: labels[n] });
                 }
@@ -155,16 +156,16 @@ var gg;
         };
         ;
         AbstractTween.prototype.setLabels = function (labels) {
-            this._labels = labels;
-            this._labelList = null;
+            this.labels = labels;
+            this.labelList = null;
         };
         ;
         AbstractTween.prototype.addLabel = function (label, position) {
-            if (!this._labels) {
-                this._labels = {};
+            if (!this.labels) {
+                this.labels = {};
             }
-            this._labels[label] = position;
-            var list = this._labelList;
+            this.labels[label] = position;
+            var list = this.labelList;
             if (list) {
                 for (var i = 0, l = list.length; i < l; i++) {
                     if (position < list[i].position) {
@@ -177,18 +178,18 @@ var gg;
         ;
         AbstractTween.prototype.gotoAndPlay = function (positionOrLabel) {
             this.paused = false;
-            this._goto(positionOrLabel);
+            this.goto(positionOrLabel);
         };
         ;
         AbstractTween.prototype.gotoAndStop = function (positionOrLabel) {
             this.paused = true;
-            this._goto(positionOrLabel);
+            this.goto(positionOrLabel);
         };
         ;
         AbstractTween.prototype.resolve = function (positionOrLabel) {
             var pos = Number(positionOrLabel);
             if (isNaN(pos)) {
-                pos = this._labels && this._labels[positionOrLabel];
+                pos = this.labels && this.labels[positionOrLabel];
             }
             return pos;
         };
@@ -201,7 +202,7 @@ var gg;
             throw ("AbstractTween can not be cloned.");
         };
         ;
-        AbstractTween.prototype._init = function (props) {
+        AbstractTween.prototype.init = function (props) {
             if (!props || !props.paused) {
                 this.paused = false;
             }
@@ -210,23 +211,23 @@ var gg;
             }
         };
         ;
-        AbstractTween.prototype._updatePosition = function (jump, end) {
+        AbstractTween.prototype.updatePosition = function (jump, end) {
             // abstract.
         };
         ;
-        AbstractTween.prototype._goto = function (positionOrLabel) {
+        AbstractTween.prototype.goto = function (positionOrLabel) {
             var pos = this.resolve(positionOrLabel);
             if (pos != null) {
                 this.setPosition(pos, false, true);
             }
         };
         ;
-        AbstractTween.prototype._runActions = function (startRawPos, endRawPos, jump, includeStart) {
+        AbstractTween.prototype.runActions = function (startRawPos, endRawPos, jump, includeStart) {
             // runs actions between startPos & endPos. Separated to support action deferral.
             //console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
             // if we don't have any actions, and we're not a Timeline, then return:
             // TODO: a cleaner way to handle this would be to override this method in Tween, but I'm not sure it's worth the overhead.
-            if (!this._actionHead && !this.tweens) {
+            if (!this.actionHead && !this.tweens) {
                 return;
             }
             var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
@@ -255,7 +256,7 @@ var gg;
             }
             // special cases:
             if (jump) {
-                return this._runActionsRange(t1, t1, jump, includeStart);
+                return this.runActionsRange(t1, t1, jump, includeStart);
             } // jump.
             else if (loop0 === loop1 && t0 === t1 && !jump && !includeStart) {
                 return;
@@ -273,17 +274,19 @@ var gg;
                     end = d - end;
                 }
                 if (bounce && loop !== loop0 && start === end) { }
-                else if (this._runActionsRange(start, end, jump, includeStart || (loop !== loop0 && !bounce))) {
+                else if (this.runActionsRange(start, end, jump, includeStart || (loop !== loop0 && !bounce))) {
                     return true;
                 }
                 includeStart = false;
             } while ((dir && ++loop <= loop1) || (!dir && --loop >= loop1));
         };
         ;
-        AbstractTween.prototype._runActionsRange = function (startPos, endPos, jump, includeStart) {
+        AbstractTween.prototype.runActionsRange = function (startPos, endPos, jump, includeStart) {
             // abstract
         };
         ;
+        AbstractTween.Change = 'change';
+        AbstractTween.Complete = 'complete';
         return AbstractTween;
     }(gg.EventDispatcher));
     gg.AbstractTween = AbstractTween;

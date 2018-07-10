@@ -17,12 +17,12 @@ namespace gg {
 			this.tweens = [];
 			if (tweens) { this.addTween.apply(this, tweens); }
 			this.setLabels(labels);
-			this._init(props);
+			this.init(props);
 		}
 
 		addTween(...tweens: AbstractTween[]): AbstractTween;
 		addTween(tween: AbstractTween): AbstractTween {
-			if (tween._parent) { tween._parent.removeTween(tween); }
+			if (tween.timeline) { tween.timeline.removeTween(tween); }
 
 			var l = arguments.length;
 			if (l > 1) {
@@ -31,7 +31,7 @@ namespace gg {
 			} else if (l === 0) { return null; }
 
 			this.tweens.push(tween);
-			tween._parent = this;
+			tween.timeline = this;
 			tween.paused = true;
 			var d = tween.duration;
 			if (tween.loop > 0) { d *= tween.loop + 1; }
@@ -55,7 +55,7 @@ namespace gg {
 			while (i--) {
 				if (tweens[i] === tween) {
 					tweens.splice(i, 1);
-					tween._parent = null;
+					tween.timeline = null;
 					if (tween.duration >= this.duration) { this.updateDuration(); }
 					return true;
 				}
@@ -84,7 +84,7 @@ namespace gg {
 		// private methods:
 
 		// Docced in AbstractTween
-		_updatePosition(jump: boolean, end: boolean) {
+		protected updatePosition(jump: boolean, end: boolean) {
 			var t = this.position;
 			for (var i = 0, l = this.tweens.length; i < l; i++) {
 				this.tweens[i].setPosition(t, true, jump); // actions will run after all the tweens update.
@@ -92,11 +92,11 @@ namespace gg {
 		};
 
 		// Docced in AbstractTween
-		_runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
+		protected runActionsRange(startPos: number, endPos: number, jump: boolean, includeStart: boolean) {
 			//console.log("	range", startPos, endPos, jump, includeStart);
 			var t = this.position;
 			for (var i = 0, l = this.tweens.length; i < l; i++) {
-				this.tweens[i]._runActions(startPos, endPos, jump, includeStart);
+				this.tweens[i].runActions(startPos, endPos, jump, includeStart);
 				if (t !== this.position) { return true; } // an action changed this timeline's position.
 			}
 		};

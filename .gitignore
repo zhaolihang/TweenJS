@@ -19,3 +19,7 @@ main.css
 *.sass-cache
 tests/.grunt
 _SpecRunner.html
+yarn.lock
+/.vscode/chrome
+.rpt2_cache
+/dist

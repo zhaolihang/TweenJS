@@ -1,3 +1,13 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var gg;
 (function (gg) {
     var TweenStep = /** @class */ (function () {
@@ -33,19 +43,19 @@ var gg;
         __extends(Tween, _super);
         function Tween(target, props) {
             var _this = _super.call(this, props) || this;
-            _this._next = null;
-            _this._prev = null;
+            _this.next = null;
+            _this.prev = null;
             _this.pluginData = null;
             _this.target = target;
             _this.passive = false;
-            _this._stepHead = new TweenStep(null, 0, 0, {}, null, true);
-            _this._stepTail = _this._stepHead;
-            _this._stepPosition = 0;
-            _this._actionHead = null;
-            _this._actionTail = null;
-            _this._plugins = null;
-            _this._pluginIds = null;
-            _this._injected = null;
+            _this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
+            _this.stepTail = _this.stepHead;
+            _this.stepPosition = 0;
+            _this.actionHead = null;
+            _this.actionTail = null;
+            _this.plugins = null;
+            _this.pluginIds = null;
+            _this.injected = null;
             if (props) {
                 _this.pluginData = props.pluginData;
                 if (props.override) {
@@ -55,7 +65,7 @@ var gg;
             if (!_this.pluginData) {
                 _this.pluginData = {};
             }
-            _this._init(props);
+            _this.init(props);
             return _this;
         }
         Tween.get = function (target, props) {
@@ -63,16 +73,16 @@ var gg;
         };
         ;
         Tween.tick = function (delta, paused) {
-            var tween = Tween._tweenHead;
-            var t = Tween._inTick = Date.now();
+            var tween = Tween.tweenHead;
+            var t = Tween.inTick = Date.now();
             while (tween) {
-                var next = tween._next, status = tween._status;
-                tween._lastTick = t;
+                var next = tween.next, status = tween.status;
+                tween.lastTick = t;
                 if (status === 1) {
-                    tween._status = 0;
+                    tween.status = 0;
                 } // new, ignore
                 else if (status === -1) {
-                    Tween._delist(tween);
+                    Tween.delist(tween);
                 } // removed, delist
                 else if ((paused && !tween.ignoreGlobalPause) || tween._paused) { }
                 else {
@@ -80,11 +90,11 @@ var gg;
                 }
                 tween = next;
             }
-            Tween._inTick = 0;
+            Tween.inTick = 0;
         };
         ;
         Tween.handleEvent = function (event) {
-            if (event.type === "tick") {
+            if (event.type === gg.Ticker.TickName) {
                 this.tick(event.delta, event.paused);
             }
         };
@@ -93,11 +103,11 @@ var gg;
             if (!target.tweenjs_count) {
                 return;
             }
-            var tween = Tween._tweenHead;
+            var tween = Tween.tweenHead;
             while (tween) {
-                var next = tween._next;
+                var next = tween.next;
                 if (tween.target === target) {
-                    Tween._register(tween, true);
+                    Tween.register(tween, true);
                 }
                 tween = next;
             }
@@ -105,26 +115,26 @@ var gg;
         };
         ;
         Tween.removeAllTweens = function () {
-            var tween = Tween._tweenHead;
+            var tween = Tween.tweenHead;
             while (tween) {
-                var next = tween._next;
+                var next = tween.next;
                 tween._paused = true;
                 tween.target && (tween.target.tweenjs_count = 0);
-                tween._next = tween._prev = null;
+                tween.next = tween.prev = null;
                 tween = next;
             }
-            Tween._tweenHead = Tween._tweenTail = null;
+            Tween.tweenHead = Tween.tweenTail = null;
         };
         ;
         Tween.hasActiveTweens = function (target) {
             if (target) {
                 return !!target.tweenjs_count;
             }
-            return !!Tween._tweenHead;
+            return !!Tween.tweenHead;
         };
         ;
         Tween._installPlugin = function (plugin) {
-            var priority = (plugin.priority = plugin.priority || 0), arr = (Tween._plugins = Tween._plugins || []);
+            var priority = (plugin.priority = plugin.priority || 0), arr = (Tween.plugins = Tween.plugins || []);
             for (var i = 0, l = arr.length; i < l; i++) {
                 if (priority < arr[i].priority) {
                     break;
@@ -133,25 +143,25 @@ var gg;
             arr.splice(i, 0, plugin);
         };
         ;
-        Tween._register = function (tween, paused) {
+        Tween.register = function (tween, paused) {
             var target = tween.target;
             if (!paused && tween._paused) {
                 // TODO: this approach might fail if a dev is using sealed objects
                 if (target) {
                     target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1;
                 }
-                var tail = Tween._tweenTail;
+                var tail = Tween.tweenTail;
                 if (!tail) {
-                    Tween._tweenHead = Tween._tweenTail = tween;
+                    Tween.tweenHead = Tween.tweenTail = tween;
                 }
                 else {
-                    Tween._tweenTail = tail._next = tween;
-                    tween._prev = tail;
+                    Tween.tweenTail = tail.next = tween;
+                    tween.prev = tail;
                 }
-                tween._status = Tween._inTick ? 1 : 0;
-                if (!Tween._inited && gg.Ticker) {
-                    gg.Ticker.addEventListener("tick", Tween);
-                    Tween._inited = true;
+                tween.status = Tween.inTick ? 1 : 0;
+                if (!Tween.inited && gg.Ticker) {
+                    gg.Ticker.addEventListener(gg.Ticker.TickName, Tween);
+                    Tween.inited = true;
                 }
             }
             else if (paused && !tween._paused) {
@@ -159,33 +169,33 @@ var gg;
                     target.tweenjs_count--;
                 }
                 // tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
-                if (!Tween._inTick || tween._lastTick === Tween._inTick) {
-                    Tween._delist(tween);
+                if (!Tween.inTick || tween.lastTick === Tween.inTick) {
+                    Tween.delist(tween);
                 }
-                tween._status = -1;
+                tween.status = -1;
             }
             tween._paused = paused;
         };
         ;
-        Tween._delist = function (tween) {
-            var next = tween._next, prev = tween._prev;
+        Tween.delist = function (tween) {
+            var next = tween.next, prev = tween.prev;
             if (next) {
-                next._prev = prev;
+                next.prev = prev;
             }
             else {
-                Tween._tweenTail = prev;
+                Tween.tweenTail = prev;
             } // was tail
             if (prev) {
-                prev._next = next;
+                prev.next = next;
             }
             else {
-                Tween._tweenHead = next;
+                Tween.tweenHead = next;
             } // was head.
-            tween._next = tween._prev = null;
+            tween.next = tween.prev = null;
         };
         Tween.prototype.wait = function (duration, passive) {
             if (duration > 0) {
-                this._addStep(+duration, this._stepTail.props, null, passive);
+                this.addStep(+duration, this.stepTail.props, null, passive);
             }
             return this;
         };
@@ -194,47 +204,43 @@ var gg;
             if (duration == null || duration < 0) {
                 duration = 0;
             }
-            var step = this._addStep(+duration, null, ease);
-            this._appendProps(props, step);
+            var step = this.addStep(+duration, null, ease);
+            this.appendProps(props, step);
             return this;
         };
-        ;
         Tween.prototype.label = function (name) {
             this.addLabel(name, this.duration);
             return this;
         };
-        ;
         Tween.prototype.call = function (callback, params, scope) {
-            return this._addAction(scope || this.target, callback, params || [this]);
+            return this.addAction(scope || this.target, callback, params || [this]);
         };
         ;
         Tween.prototype.set = function (props, target) {
-            return this._addAction(target || this.target, this._set, [props]);
+            return this.addAction(target || this.target, this._set, [props]);
         };
         ;
         Tween.prototype.play = function (tween) {
-            return this._addAction(tween || this, this._set, [{ paused: false }]);
+            return this.addAction(tween || this, this._set, [{ paused: false }]);
         };
         ;
         Tween.prototype.pause = function (tween) {
-            return this._addAction(tween || this, this._set, [{ paused: true }]);
+            return this.addAction(tween || this, this._set, [{ paused: true }]);
         };
         ;
-        Tween.prototype.toString = function () {
-            return "[Tween]";
+        Tween.prototype._set = function (props) {
+            for (var n in props) {
+                this[n] = props[n];
+            }
         };
         ;
-        Tween.prototype.clone = function () {
-            throw ("Tween can not be cloned.");
-        };
-        ;
-        Tween.prototype._addPlugin = function (plugin) {
-            var ids = this._pluginIds || (this._pluginIds = {}), id = plugin.ID;
+        Tween.prototype.addPlugin = function (plugin) {
+            var ids = this.pluginIds || (this.pluginIds = {}), id = plugin.ID;
             if (!id || ids[id]) {
                 return;
             } // already added
             ids[id] = true;
-            var plugins = this._plugins || (this._plugins = []), priority = plugin.priority || 0;
+            var plugins = this.plugins || (this.plugins = []), priority = plugin.priority || 0;
             for (var i = 0, l = plugins.length; i < l; i++) {
                 if (priority < plugins[i].priority) {
                     plugins.splice(i, 0, plugin);
@@ -244,8 +250,8 @@ var gg;
             plugins.push(plugin);
         };
         ;
-        Tween.prototype._updatePosition = function (jump, end) {
-            var step = this._stepHead.next, t = this.position, d = this.duration;
+        Tween.prototype.updatePosition = function (jump, end) {
+            var step = this.stepHead.next, t = this.position, d = this.duration;
             if (this.target && step) {
                 // find our new step index:
                 var stepNext = step.next;
@@ -254,12 +260,12 @@ var gg;
                     stepNext = step.next;
                 }
                 var ratio = end ? d === 0 ? 1 : t / d : (t - step.t) / step.d; // TODO: revisit this.
-                this._updateTargetProps(step, ratio, end);
+                this.updateTargetProps(step, ratio, end);
             }
-            this._stepPosition = step ? t - step.t : 0;
+            this.stepPosition = step ? t - step.t : 0;
         };
         ;
-        Tween.prototype._updateTargetProps = function (step, ratio, end) {
+        Tween.prototype.updateTargetProps = function (step, ratio, end) {
             if (this.passive = !!step.passive) {
                 return;
             } // don't update props.
@@ -269,7 +275,7 @@ var gg;
             if (ease = step.ease) {
                 ratio = ease(ratio, 0, 1, 1);
             }
-            var plugins = this._plugins;
+            var plugins = this.plugins;
             proploop: for (var n in p0) {
                 v0 = p0[n];
                 v1 = p1[n];
@@ -295,9 +301,9 @@ var gg;
             }
         };
         ;
-        Tween.prototype._runActionsRange = function (startPos, endPos, jump, includeStart) {
+        Tween.prototype.runActionsRange = function (startPos, endPos, jump, includeStart) {
             var rev = startPos > endPos;
-            var action = rev ? this._actionTail : this._actionHead;
+            var action = rev ? this.actionTail : this.actionHead;
             var ePos = endPos, sPos = startPos;
             if (rev) {
                 ePos = startPos;
@@ -316,11 +322,11 @@ var gg;
             }
         };
         ;
-        Tween.prototype._appendProps = function (props, step, stepPlugins) {
-            var initProps = this._stepHead.props, target = this.target, plugins = Tween._plugins;
+        Tween.prototype.appendProps = function (props, step, stepPlugins) {
+            var initProps = this.stepHead.props, target = this.target, plugins = Tween.plugins;
             var n, i, value, initValue, inject;
             var oldStep = step.prev, oldProps = oldStep.props;
-            var stepProps = step.props || (step.props = this._cloneProps(oldProps));
+            var stepProps = step.props || (step.props = this.cloneProps(oldProps));
             var cleanProps = {}; // TODO: is there some way to avoid this additional object?
             for (n in props) {
                 if (!props.hasOwnProperty(n)) {
@@ -365,47 +371,41 @@ var gg;
                     prev.props[n] = oldProps[n];
                 }
             }
-            if (stepPlugins !== false && (plugins = this._plugins)) {
+            if (stepPlugins !== false && (plugins = this.plugins)) {
                 for (i = plugins.length - 1; i >= 0; i--) {
                     plugins[i].step(this, step, cleanProps);
                 }
             }
-            if (inject = this._injected) {
-                this._injected = null;
-                this._appendProps(inject, step, false);
+            if (inject = this.injected) {
+                this.injected = null;
+                this.appendProps(inject, step, false);
             }
         };
         ;
-        Tween.prototype._injectProp = function (name, value) {
-            var o = this._injected || (this._injected = {});
+        Tween.prototype.injectProp = function (name, value) {
+            var o = this.injected || (this.injected = {});
             o[name] = value;
         };
         ;
-        Tween.prototype._addStep = function (duration, props, ease, passive) {
-            var step = new TweenStep(this._stepTail, this.duration, duration, props, ease, passive || false);
+        Tween.prototype.addStep = function (duration, props, ease, passive) {
+            var step = new TweenStep(this.stepTail, this.duration, duration, props, ease, passive || false);
             this.duration += duration;
-            return this._stepTail = (this._stepTail.next = step);
+            return this.stepTail = (this.stepTail.next = step); // 放到链表的最后
         };
         ;
-        Tween.prototype._addAction = function (scope, funct, params) {
-            var action = new TweenAction(this._actionTail, this.duration, scope, funct, params);
-            if (this._actionTail) {
-                this._actionTail.next = action;
+        Tween.prototype.addAction = function (scope, funct, params) {
+            var action = new TweenAction(this.actionTail, this.duration, scope, funct, params);
+            if (this.actionTail) {
+                this.actionTail.next = action;
             }
             else {
-                this._actionHead = action;
+                this.actionHead = action;
             }
-            this._actionTail = action;
+            this.actionTail = action;
             return this;
         };
         ;
-        Tween.prototype._set = function (props) {
-            for (var n in props) {
-                this[n] = props[n];
-            }
-        };
-        ;
-        Tween.prototype._cloneProps = function (props) {
+        Tween.prototype.cloneProps = function (props) {
             var o = {};
             for (var n in props) {
                 o[n] = props[n];
@@ -413,12 +413,20 @@ var gg;
             return o;
         };
         ;
+        Tween.prototype.toString = function () {
+            return "[Tween]";
+        };
+        ;
+        Tween.prototype.clone = function () {
+            throw ("Tween can not be cloned.");
+        };
+        ;
         Tween.IGNORE = {};
-        Tween._tweens = [];
-        Tween._plugins = null;
-        Tween._tweenHead = null;
-        Tween._tweenTail = null;
-        Tween._inTick = 0;
+        Tween.tweens = [];
+        Tween.plugins = null;
+        Tween.tweenHead = null;
+        Tween.tweenTail = null;
+        Tween.inTick = 0;
         return Tween;
     }(gg.AbstractTween));
     gg.Tween = Tween;

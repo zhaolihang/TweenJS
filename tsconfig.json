@@ -12,7 +12,7 @@
         "allowJs": true,
         "listFiles": true,
         "strictNullChecks": false,
-        "noEmitHelpers": true
+        "noEmitHelpers": false
     },
     "include": [
         "src/ts/**/*.ts"
