@@ -145,7 +145,7 @@ var createjs;
                 if (!bubbles && (!listeners || !listeners[eventObj])) {
                     return true;
                 }
-                eventObj = new createjs.Event(eventObj, bubbles, cancelable);
+                eventObj = new Event(eventObj, bubbles, cancelable);
             }
             else if (eventObj.target && eventObj.clone) {
                 // redispatching an active event object, so clone it:

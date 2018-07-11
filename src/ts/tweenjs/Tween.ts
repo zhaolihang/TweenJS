@@ -1,4 +1,5 @@
 namespace createjs {
+
 	export type FreeFuncionType = (...args) => any;
 	export type TargetType = { tweenjs_count?: number } & FreeType;
 	export type FreeType = { [key: string]: any };
@@ -180,7 +181,7 @@ namespace createjs {
 					tween.prev = tail;
 				}
 				tween.status = Tween.inTick ? 1 : 0;
-				if (!Tween.inited && createjs.Ticker) { createjs.Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
+				if (!Tween.inited && Ticker) { Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
 			} else if (paused && !tween._paused) {
 				if (target) { target.tweenjs_count--; }
 				// tick handles delist if we're in a tick stack and the tween hasn't advanced yet:

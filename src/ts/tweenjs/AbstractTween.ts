@@ -13,7 +13,7 @@ namespace createjs {
 		position?: number,
 	}
 
-	export abstract class AbstractTween extends createjs.EventDispatcher {
+	export abstract class AbstractTween extends EventDispatcher {
 
 		public static readonly Change = 'change';
 		public static readonly Complete = 'complete';
