@@ -3,45 +3,49 @@ namespace createjs {
 	export type EaseFun = (t: number) => number;
 
 	export class Ease {
-		static bounceOut: (arg0: any) => any;
-		static linear: (t: any) => any;
-		static none: any;
-		static get: (amount: any) => (t: any) => any;
-		static getPowIn: (pow: any) => (t: any) => number;
-		static getPowOut: (pow: any) => (t: any) => number;
-		static getPowInOut: (pow: any) => (t: any) => number;
-		static quadIn: any;
-		static quadOut: any;
-		static quadInOut: any;
-		static cubicIn: any;
-		static cubicOut: any;
-		static cubicInOut: any;
-		static quartIn: any;
-		static quartOut: any;
-		static quartInOut: any;
-		static quintIn: any;
-		static quintOut: any;
-		static quintInOut: any;
-		static sineIn: (t: any) => number;
-		static sineOut: (t: any) => number;
-		static sineInOut: (t: any) => number;
-		static getBackIn: (amount: any) => (t: any) => number;
-		static backIn: any;
-		static getBackOut: (amount: any) => (t: any) => number;
-		static backOut: any;
-		static getBackInOut: (amount: any) => (t: any) => number;
-		static backInOut: any;
-		static circIn: (t: any) => number;
-		static circOut: (t: any) => number;
-		static circInOut: (t: any) => number;
-		static bounceIn: (t: any) => number;
-		static bounceInOut: (t: any) => number;
-		static getElasticIn: (amplitude: any, period: any) => (t: any) => any;
-		static elasticIn: any;
-		static getElasticOut: (amplitude: any, period: any) => (t: any) => any;
-		static elasticOut: any;
-		static getElasticInOut: (amplitude: any, period: any) => (t: any) => number;
-		static elasticInOut: any;
+		static get(amount: number): (amount: number) => number { return null; };
+		static getBackIn(amount: number): (amount: number) => number { return null; };
+		static getBackInOut(amount: number): (amount: number) => number { return null; };
+		static getBackOut(amount: number): (amount: number) => number { return null; };
+		static getElasticIn(amplitude: number, period: number): (amount: number) => number { return null; };
+		static getElasticInOut(amplitude: number, period: number): (amount: number) => number { return null; };
+		static getElasticOut(amplitude: number, period: number): (amount: number) => number { return null; };
+		static getPowIn(pow: number): (amount: number) => number { return null; };
+		static getPowInOut(pow: number): (amount: number) => number { return null; };
+		static getPowOut(pow: number): (amount: number) => number { return null; };
+
+		// methods
+		static backIn: (amount: number) => number;
+		static backInOut: (amount: number) => number;
+		static backOut: (amount: number) => number;
+		static bounceIn: (amount: number) => number;
+		static bounceInOut: (amount: number) => number;
+		static bounceOut: (amount: number) => number;
+		static circIn: (amount: number) => number;
+		static circInOut: (amount: number) => number;
+		static circOut: (amount: number) => number;
+		static cubicIn: (amount: number) => number;
+		static cubicInOut: (amount: number) => number;
+		static cubicOut: (amount: number) => number;
+		static elasticIn: (amount: number) => number;
+		static elasticInOut: (amount: number) => number;
+		static elasticOut: (amount: number) => number;
+
+		static linear: (amount: number) => number;
+		static none: (amount: number) => number;    // same as linear
+		static quadIn: (amount: number) => number;
+		static quadInOut: (amount: number) => number;
+		static quadOut: (amount: number) => number;
+		static quartIn: (amount: number) => number;
+		static quartInOut: (amount: number) => number;
+		static quartOut: (amount: number) => number;
+		static quintIn: (amount: number) => number;
+		static quintInOut: (amount: number) => number;
+		static quintOut: (amount: number) => number;
+		static sineIn: (amount: number) => number;
+		static sineInOut: (amount: number) => number;
+		static sineOut: (amount: number) => number;
+
 		constructor() {
 			throw "Ease cannot be instantiated.";
 		}

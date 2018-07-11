@@ -2,13 +2,13 @@ namespace createjs {
 
 
 	export interface TimelineProps extends AbstractTweenProps {
-		tweens?: AbstractTween[];
+		tweens?: Tween[];
 		labels?: { [lable: string]: number };
 	}
 
 	export class Timeline extends AbstractTween {
 		constructor(props?: TimelineProps) {
-			var tweens: AbstractTween[], labels: { [lable: string]: number };
+			var tweens: Tween[], labels: { [lable: string]: number };
 			if (props) {
 				tweens = props.tweens;
 				labels = props.labels;
@@ -20,8 +20,8 @@ namespace createjs {
 			this.init(props);
 		}
 
-		addTween(...tweens: AbstractTween[]): AbstractTween;
-		addTween(tween: AbstractTween): AbstractTween {
+		addTween(...tweens: Tween[]): Tween;
+		addTween(tween: Tween): Tween {
 			if (tween.timeline) { tween.timeline.removeTween(tween); }
 
 			var l = arguments.length;
@@ -41,8 +41,8 @@ namespace createjs {
 			return tween;
 		};
 
-		removeTween(...tweens: AbstractTween[]): boolean;
-		removeTween(tween: AbstractTween): boolean {
+		removeTween(...tweens: Tween[]): boolean;
+		removeTween(tween: Tween): boolean {
 			var l = arguments.length;
 			if (l > 1) {
 				var good = true;

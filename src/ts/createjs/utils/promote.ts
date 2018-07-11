@@ -27,13 +27,6 @@
 */
 
 /**
- * @module CreateJS
- */
-
-// namespace:
-this.createjs = this.createjs || {};
-
-/**
  * @class Utility Methods
  */
 

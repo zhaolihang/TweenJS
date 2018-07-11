@@ -1,16 +1,18 @@
 namespace createjs {
-
+	export type FreeFuncionType = (...args) => any;
+	export type TargetType = { tweenjs_count?: number } & FreeType;
+	export type FreeType = { [key: string]: any };
 
 	export class TweenStep {
 		next: TweenStep;
 		prev: TweenStep;
 		t: number;
 		d: number;
-		props: any;
+		props: TweenProps;
 		ease: EaseFun;
 		passive: boolean;
 		index: number;
-		constructor(prev: TweenStep, t: number, d: number, props: any, ease: EaseFun, passive?: boolean) {
+		constructor(prev: TweenStep, t: number, d: number, props: TweenProps, ease: EaseFun, passive?: boolean) {
 			this.next = null;
 			this.prev = prev;
 			this.t = t;
@@ -25,13 +27,13 @@ namespace createjs {
 
 	export class TweenAction {
 		scope: any;
-		params: any;
+		params: any[];
 		funct: FreeFuncionType;
 		next: TweenAction;
 		prev: TweenAction;
 		t: number;
 		d: number;
-		constructor(prev: TweenAction, t: number, scope: any, funct: FreeFuncionType, params: any) {
+		constructor(prev: TweenAction, t: number, scope: any, funct: FreeFuncionType, params: any[]) {
 			this.next = null;
 			this.prev = prev;
 			this.t = t;
@@ -46,8 +48,6 @@ namespace createjs {
 		pluginData?: any;
 		override?: boolean;
 	}
-
-	export type TargetType = { tweenjs_count?: number } & FreeType;
 
 	export class Tween extends AbstractTween {
 		public pluginData: any;
@@ -218,11 +218,9 @@ namespace createjs {
 			return this;
 		}
 
-
-		public call(callback: FreeFuncionType, params: any, scope: any) {
+		public call(callback: (...params: any[]) => void, params?: any[], scope?: any): Tween {
 			return this.addAction(scope || this.target, callback, params || [this]);
 		};
-
 
 		public set(props: any, target: TargetType) {
 			return this.addAction(target || this.target, this._set, [props]);
@@ -236,7 +234,7 @@ namespace createjs {
 			return this.addAction(tween || this, this._set, [{ paused: true }]);
 		};
 
-		private _set(props) {
+		private _set(props: any) {
 			for (var n in props) {
 				this[n] = props[n];
 			}

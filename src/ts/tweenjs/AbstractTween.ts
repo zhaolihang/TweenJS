@@ -1,5 +1,4 @@
 namespace createjs {
-	export type FreeFuncionType = (...args) => any;
 
 	export interface AbstractTweenProps {
 		useTicks?: boolean;
@@ -8,8 +7,10 @@ namespace createjs {
 		reversed?: boolean;
 		bounce?: boolean;
 		timeScale?: number;
-		onChange?: FreeFuncionType;
-		onComplete?: FreeFuncionType;
+		onChange?: (e: Event) => void,
+		onComplete?: (e: Event) => void,
+		paused?: boolean,
+		position?: number,
 	}
 
 	export abstract class AbstractTween extends createjs.EventDispatcher {
@@ -45,7 +46,7 @@ namespace createjs {
 		actionHead: TweenAction;
 		actionTail: TweenAction;
 
-		tweens: AbstractTween[];
+		tweens: Tween[];
 		constructor(props?: AbstractTweenProps) {
 			super();
 
@@ -100,7 +101,8 @@ namespace createjs {
 			this.setPosition(this.rawPosition + delta * this.timeScale, ignoreActions);
 		};
 
-		public setPosition(rawPosition: number, ignoreActions?: boolean, jump?: boolean, callback?) {
+		public setPosition(rawPosition: number, ignoreActions?: boolean, jump?: boolean, callback?: (tween: AbstractTween) => void): void {
+
 			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
 			var loop = 0, t = 0, end = false;
 
@@ -110,14 +112,14 @@ namespace createjs {
 			if (d === 0) {
 				// deal with 0 length tweens.
 				end = true;
-				if (prevRawPos !== -1) { return end; } // we can avoid doing anything else if we're already at 0.
+				if (prevRawPos !== -1) { return; } // we can avoid doing anything else if we're already at 0.
 			} else {
 				loop = rawPosition / d | 0;// 向下取整
 				t = rawPosition - loop * d;
 
 				end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
 				if (end) { rawPosition = (t = d) * (loop = loopCount) + d; }
-				if (rawPosition === prevRawPos) { return end; } // no need to update
+				if (rawPosition === prevRawPos) { return; } // no need to update
 
 				var rev = !this.reversed !== !(this.bounce && loop % 2); // current loop is reversed
 				if (rev) { t = d - t; }
@@ -203,7 +205,7 @@ namespace createjs {
 			throw ("AbstractTween can not be cloned.")
 		};
 
-		protected init(props) {
+		protected init(props?: AbstractTweenProps) {
 			if (!props || !props.paused) { this.paused = false; }
 			if (props && (props.position != null)) { this.setPosition(props.position); }
 		};

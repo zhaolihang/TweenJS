@@ -86,7 +86,7 @@ var createjs;
                 // deal with 0 length tweens.
                 end = true;
                 if (prevRawPos !== -1) {
-                    return end;
+                    return;
                 } // we can avoid doing anything else if we're already at 0.
             }
             else {
@@ -97,7 +97,7 @@ var createjs;
                     rawPosition = (t = d) * (loop = loopCount) + d;
                 }
                 if (rawPosition === prevRawPos) {
-                    return end;
+                    return;
                 } // no need to update
                 var rev = !this.reversed !== !(this.bounce && loop % 2); // current loop is reversed
                 if (rev) {

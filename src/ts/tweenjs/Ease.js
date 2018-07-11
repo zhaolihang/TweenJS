@@ -4,6 +4,26 @@ var createjs;
         function Ease() {
             throw "Ease cannot be instantiated.";
         }
+        Ease.get = function (amount) { return null; };
+        ;
+        Ease.getBackIn = function (amount) { return null; };
+        ;
+        Ease.getBackInOut = function (amount) { return null; };
+        ;
+        Ease.getBackOut = function (amount) { return null; };
+        ;
+        Ease.getElasticIn = function (amplitude, period) { return null; };
+        ;
+        Ease.getElasticInOut = function (amplitude, period) { return null; };
+        ;
+        Ease.getElasticOut = function (amplitude, period) { return null; };
+        ;
+        Ease.getPowIn = function (pow) { return null; };
+        ;
+        Ease.getPowInOut = function (pow) { return null; };
+        ;
+        Ease.getPowOut = function (pow) { return null; };
+        ;
         return Ease;
     }());
     createjs.Ease = Ease;
