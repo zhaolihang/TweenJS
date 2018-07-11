@@ -74,23 +74,25 @@ var createjs;
         ;
         Tween.tick = function (delta, paused) {
             var tween = Tween.tweenHead;
-            var t = Tween.inTick = Date.now();
+            var t = Tween.isInTick = Date.now();
             while (tween) {
                 var next = tween.next, status = tween.status;
                 tween.lastTick = t;
-                if (status === createjs.TweenState.AddedToList) {
-                    tween.status = createjs.TweenState.InList;
-                } // new, ignore
-                else if (status === createjs.TweenState.Remvoed) {
-                    Tween.delist(tween);
-                } // removed, delist
-                else if ((paused && !tween.ignoreGlobalPause) || tween._paused) { }
+                if (status === createjs.TweenState.NewAdded) {
+                    tween.status = createjs.TweenState.InList; // new, ignore
+                }
+                else if (status === createjs.TweenState.Removed) {
+                    Tween.delist(tween); // removed, delist
+                }
+                else if ((paused && !tween.ignoreGlobalPause) || tween._paused) {
+                    /* paused */
+                }
                 else {
                     tween.advance(tween.useTicks ? 1 : delta);
                 }
                 tween = next;
             }
-            Tween.inTick = 0;
+            Tween.isInTick = 0;
         };
         ;
         Tween.handleEvent = function (event) {
@@ -158,7 +160,7 @@ var createjs;
                     Tween.tweenTail = tail.next = tween;
                     tween.prev = tail;
                 }
-                tween.status = Tween.inTick ? createjs.TweenState.AddedToList : createjs.TweenState.InList;
+                tween.status = Tween.isInTick ? createjs.TweenState.NewAdded : createjs.TweenState.InList;
                 if (!Tween.inited && createjs.Ticker) {
                     createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);
                     Tween.inited = true;
@@ -169,10 +171,10 @@ var createjs;
                     target.tweenjs_count--;
                 }
                 // tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
-                if (!Tween.inTick || tween.lastTick === Tween.inTick) {
+                if (!Tween.isInTick || tween.lastTick === Tween.isInTick) {
                     Tween.delist(tween);
                 }
-                tween.status = createjs.TweenState.Remvoed;
+                tween.status = createjs.TweenState.Removed;
             }
             tween._paused = paused;
         };
@@ -426,7 +428,7 @@ var createjs;
         Tween.plugins = null;
         Tween.tweenHead = null;
         Tween.tweenTail = null;
-        Tween.inTick = 0;
+        Tween.isInTick = 0;
         return Tween;
     }(createjs.AbstractTween));
     createjs.Tween = Tween;

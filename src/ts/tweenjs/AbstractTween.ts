@@ -16,13 +16,13 @@ namespace createjs {
 	export enum TweenState {
 		/*
 		* Status in tick list:
-		* -1 = remvoed from list (or to be removed in this tick stack)
+		* -1 = removed from list (or to be removed in this tick stack)
 		* 0 = in list
 		* 1 = added to list in the current tick stack
 		*/
-		Remvoed = -1,
+		Removed = -1,
 		InList = 0,
-		AddedToList = 1,
+		NewAdded = 1,
 	}
 
 	export abstract class AbstractTween extends EventDispatcher {
@@ -69,7 +69,7 @@ namespace createjs {
 			this.timeline = null;
 			this.labels = null;
 			this.labelList = null;
-			this.status = TweenState.Remvoed;
+			this.status = TweenState.Removed;
 			this.lastTick = 0;
 
 			if (props) {

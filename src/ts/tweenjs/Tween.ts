@@ -58,6 +58,8 @@ namespace createjs {
 
 		private next: Tween;
 		private prev: Tween;
+
+		// The position within the current step. Used by MovieClip.
 		private stepPosition: number;
 
 		plugins: any;
@@ -104,7 +106,7 @@ namespace createjs {
 		static plugins = null;
 		static tweenHead: Tween = null;
 		static tweenTail: Tween = null;
-		static inTick = 0;
+		static isInTick = 0;
 
 		static get(target: TargetType, props?: TweenProps) {
 			return new Tween(target, props);
@@ -112,17 +114,24 @@ namespace createjs {
 
 		static tick(delta: number, paused?: boolean) {
 			var tween = Tween.tweenHead;
-			var t = Tween.inTick = Date.now();
+			var t = Tween.isInTick = Date.now();
 			while (tween) {
 				var next = tween.next, status = tween.status;
 				tween.lastTick = t;
-				if (status === TweenState.AddedToList) { tween.status = TweenState.InList; } // new, ignore
-				else if (status === TweenState.Remvoed) { Tween.delist(tween); } // removed, delist
-				else if ((paused && !tween.ignoreGlobalPause) || tween._paused) { /* paused */ }
-				else { tween.advance(tween.useTicks ? 1 : delta); }
+
+				if (status === TweenState.NewAdded) {
+					tween.status = TweenState.InList; // new, ignore
+				} else if (status === TweenState.Removed) {
+					Tween.delist(tween);// removed, delist
+				} else if ((paused && !tween.ignoreGlobalPause) || tween._paused) {
+					/* paused */
+				} else {
+					tween.advance(tween.useTicks ? 1 : delta);
+				}
+
 				tween = next;
 			}
-			Tween.inTick = 0;
+			Tween.isInTick = 0;
 		};
 
 		static handleEvent(event: Event & FreeType) {
@@ -183,13 +192,13 @@ namespace createjs {
 					Tween.tweenTail = tail.next = tween;
 					tween.prev = tail;
 				}
-				tween.status = Tween.inTick ? TweenState.AddedToList : TweenState.InList;
+				tween.status = Tween.isInTick ? TweenState.NewAdded : TweenState.InList;
 				if (!Tween.inited && Ticker) { Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
 			} else if (paused && !tween._paused) {
 				if (target) { target.tweenjs_count--; }
 				// tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
-				if (!Tween.inTick || tween.lastTick === Tween.inTick) { Tween.delist(tween); }
-				tween.status = TweenState.Remvoed;
+				if (!Tween.isInTick || tween.lastTick === Tween.isInTick) { Tween.delist(tween); }
+				tween.status = TweenState.Removed;
 			}
 			tween._paused = paused;
 		};
