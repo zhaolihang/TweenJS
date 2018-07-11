@@ -273,7 +273,7 @@ var createjs;
             var p0 = step.prev.props;
             var p1 = step.props;
             if (ease = step.ease) {
-                ratio = ease(ratio, 0, 1, 1);
+                ratio = ease(ratio);
             }
             var plugins = this.plugins;
             proploop: for (var n in p0) {

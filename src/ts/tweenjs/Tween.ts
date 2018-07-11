@@ -274,7 +274,7 @@ namespace createjs {
 			var v, v0, v1, ease: EaseFun;
 			var p0 = step.prev.props;
 			var p1 = step.props;
-			if (ease = step.ease) { ratio = (<any>ease)(ratio, 0, 1, 1); }
+			if (ease = step.ease) { ratio = ease(ratio); }
 
 			var plugins = this.plugins;
 			proploop: for (var n in p0) {
