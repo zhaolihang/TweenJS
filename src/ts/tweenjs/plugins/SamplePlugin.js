@@ -87,7 +87,7 @@ this.createjs = this.createjs||{};
 	 **/
 	s.install = function() {
 		// TODO: should we just do installPlugin vs Plugin.install? That's what our other libs do.
-		createjs.Tween._installPlugin(SamplePlugin);
+		createjs.Tween.installPlugin(SamplePlugin);
 	};
 
 	/**
@@ -128,7 +128,7 @@ this.createjs = this.createjs||{};
 		
 		// we know we want to operate on this tween, so we add the plugin to it:
 		// most plugins can just be a single shared plugin class:
-		tween._addPlugin(SamplePlugin);
+		tween.addPlugin(SamplePlugin);
 		
 		// you can also use pluginData to attach arbitrary data to the tween for later use:
 		// we want to adjust y relative to it's initial value, so let's save that off in pluginData:
@@ -194,7 +194,7 @@ this.createjs = this.createjs||{};
 		
 		// or specify other properties that you'd like to include in the tween:
 		// this can be used to set the step's end value for a property we can't be certain it is already being tweened.
-		// tween._injectProp("y", 200);
+		// tween.injectProp("y", 200);
 		
 		// if this was a plugin instance, you could store step specific data using step.index:
 		// this.steps[step.index] = {arbitraryData:foo};

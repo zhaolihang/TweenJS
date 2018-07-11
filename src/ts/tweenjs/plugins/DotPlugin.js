@@ -81,7 +81,7 @@ this.createjs = this.createjs||{};
 	 * @static
 	 **/
 	s.install = function() {
-		createjs.Tween._installPlugin(DotPlugin);
+		createjs.Tween.installPlugin(DotPlugin);
 	};
 
 	/**
@@ -100,7 +100,7 @@ this.createjs = this.createjs||{};
 		
 		// only operate on props starting with ".":
 		if (prop[0] !== ".") { return; }
-		tween._addPlugin(DotPlugin);
+		tween.addPlugin(DotPlugin);
 		
 		var t = tween.target, arr=prop.split(".");
 		for (var i=1, l=arr.length; i<l-1; i++) {

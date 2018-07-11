@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 
 	export type EaseFun = (t: number) => number;
 

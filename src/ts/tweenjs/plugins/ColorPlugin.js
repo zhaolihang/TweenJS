@@ -103,7 +103,7 @@ this.createjs = this.createjs||{};
 	 **/
 	s.install = function(mode) {
 		s._mode = mode || s._mode;
-		createjs.Tween._installPlugin(s);
+		createjs.Tween.installPlugin(s);
 	};
 	
 	/**
@@ -120,7 +120,7 @@ this.createjs = this.createjs||{};
 		var data = tween.pluginData;
 		value = value === undefined ? tween.target[prop] : value;
 		if (!data.Color_disabled && typeof value === "string" && s.COLOR_RE.exec(value)) {
-			tween._addPlugin(s);
+			tween.addPlugin(s);
 			var colorData = data.Color || (data.Color = {});
 			colorData[prop] = true;
 			return getColorObj(value, s._mode);

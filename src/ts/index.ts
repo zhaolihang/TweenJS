@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
     let target = { _x: 0 };
     Object.defineProperty(target, 'x', {
         get() {

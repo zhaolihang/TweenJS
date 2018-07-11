@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 	export class TweenGroup {
 		_tweens: (Tween | TweenGroup)[];
 		__onComplete: FreeFuncionType;
@@ -45,7 +45,7 @@ namespace gg {
 		}
 
 		get(target: TargetType, props: any) {
-			return this.add(gg.Tween.get(target, props));
+			return this.add(createjs.Tween.get(target, props));
 		}
 
 		add(...tweens: (Tween | TweenGroup)[]): (Tween | TweenGroup);

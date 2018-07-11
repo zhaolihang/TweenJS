@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 	export function indexOf(array, searchElement) {
 		"use strict";
 

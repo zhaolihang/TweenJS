@@ -99,7 +99,7 @@ this.createjs = this.createjs||{};
 	 * @static
 	 */
 	s.install = function() {
-		createjs.Tween._installPlugin(MotionGuidePlugin);
+		createjs.Tween.installPlugin(MotionGuidePlugin);
 		return createjs.Tween.IGNORE;
 	};
 
@@ -115,7 +115,7 @@ this.createjs = this.createjs||{};
 	 */
 	s.init = function(tween, prop, value) {
 		if(prop == "guide") {
-			tween._addPlugin(s);
+			tween.addPlugin(s);
 		}
 	};
 
@@ -137,8 +137,8 @@ this.createjs = this.createjs||{};
 			guideData.valid = !error;
 
 			var end = guideData.endData;
-			tween._injectProp("x", end.x);
-			tween._injectProp("y", end.y);
+			tween.injectProp("x", end.x);
+			tween.injectProp("y", end.y);
 
 			if(error || !guideData.orient) { break; }
 
@@ -172,7 +172,7 @@ this.createjs = this.createjs||{};
 				}
 			}
 
-			tween._injectProp("rotation", guideData.endAbsRot);
+			tween.injectProp("rotation", guideData.endAbsRot);
 		}
 	};
 

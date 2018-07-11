@@ -1,5 +1,5 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     function indexOf(array, searchElement) {
         "use strict";
         for (var i = 0, l = array.length; i < l; i++) {
@@ -9,6 +9,6 @@ var gg;
         }
         return -1;
     }
-    gg.indexOf = indexOf;
-})(gg || (gg = {}));
+    createjs.indexOf = indexOf;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=indexOf.js.map

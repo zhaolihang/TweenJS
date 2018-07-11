@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 	export type FreeFuncionType = (...args) => any;
 
 	export interface AbstractTweenProps {
@@ -12,7 +12,7 @@ namespace gg {
 		onComplete?: FreeFuncionType;
 	}
 
-	export abstract class AbstractTween extends gg.EventDispatcher {
+	export abstract class AbstractTween extends createjs.EventDispatcher {
 
 		public static readonly Change = 'change';
 		public static readonly Complete = 'complete';

@@ -146,7 +146,7 @@ this.createjs = this.createjs||{};
 	 * @static
 	 **/
 	s.install = function() {
-		createjs.Tween._installPlugin(CSSPlugin);
+		createjs.Tween.installPlugin(CSSPlugin);
 	};
 
 	/**
@@ -165,7 +165,7 @@ this.createjs = this.createjs||{};
 		var initVal = value||getStyle(tween.target, prop, data.CSS_compute);
 		if (initVal === undefined) { return;  }
 		
-		tween._addPlugin(CSSPlugin);
+		tween.addPlugin(CSSPlugin);
 		var cssData = data.CSS || (data.CSS = {});
 		if (prop === "transform") {
 			cssData[prop] = "_t";

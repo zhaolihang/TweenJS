@@ -1,5 +1,5 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var EventDispatcher = /** @class */ (function () {
         function EventDispatcher() {
             this._listeners = null;
@@ -97,7 +97,7 @@ var gg;
                 if (!bubbles && (!listeners || !listeners[eventObj])) {
                     return true;
                 }
-                eventObj = new gg.Event(eventObj, bubbles, cancelable);
+                eventObj = new createjs.Event(eventObj, bubbles, cancelable);
             }
             else if (eventObj.target && eventObj.clone) {
                 // redispatching an active event object, so clone it:
@@ -183,6 +183,6 @@ var gg;
         ;
         return EventDispatcher;
     }());
-    gg.EventDispatcher = EventDispatcher;
-})(gg || (gg = {}));
+    createjs.EventDispatcher = EventDispatcher;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=EventDispatcher.js.map

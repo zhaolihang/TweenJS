@@ -1,11 +1,11 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     function extend(subclass, superclass) {
         "use strict";
         function o() { this.constructor = subclass; }
         o.prototype = superclass.prototype;
         return (subclass.prototype = new o());
     }
-    gg.extend = extend;
-})(gg || (gg = {}));
+    createjs.extend = extend;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=extend.js.map

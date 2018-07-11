@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 
 
 	export interface TimelineProps extends AbstractTweenProps {

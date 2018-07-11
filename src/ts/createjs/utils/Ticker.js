@@ -1,5 +1,5 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var Ticker = /** @class */ (function () {
         function Ticker() {
             throw "Ticker cannot be instantiated.";
@@ -18,7 +18,7 @@ var gg;
         };
         return Ticker;
     }());
-    gg.Ticker = Ticker;
+    createjs.Ticker = Ticker;
     Ticker.RAF_SYNCHED = "synched";
     Ticker.TickName = "tick";
     Ticker.RAF = "raf";
@@ -46,7 +46,7 @@ var gg;
     Ticker._tickTimes = null;
     Ticker._timerId = null;
     Ticker._raf = true;
-    gg.EventDispatcher.initialize(Ticker);
+    createjs.EventDispatcher.initialize(Ticker);
     Ticker._addEventListener = Ticker.addEventListener;
     Ticker.addEventListener = function () {
         !Ticker._inited && Ticker.init();
@@ -176,7 +176,7 @@ var gg;
             Ticker._pausedTime += elapsedTime;
         }
         if (Ticker.hasEventListener(Ticker.TickName)) {
-            var event = new gg.Event(Ticker.TickName);
+            var event = new createjs.Event(Ticker.TickName);
             var maxDelta = Ticker.maxDelta;
             event.delta = (maxDelta && elapsedTime > maxDelta) ? maxDelta : elapsedTime;
             event.paused = paused;
@@ -197,5 +197,5 @@ var gg;
     Ticker._getTime = function () {
         return ((now && now.call(w.performance)) || (new Date().getTime())) - Ticker._startTime;
     };
-})(gg || (gg = {}));
+})(createjs || (createjs = {}));
 //# sourceMappingURL=Ticker.js.map

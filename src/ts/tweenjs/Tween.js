@@ -8,8 +8,8 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var TweenStep = /** @class */ (function () {
         function TweenStep(prev, t, d, props, ease, passive) {
             this.next = null;
@@ -23,7 +23,7 @@ var gg;
         }
         return TweenStep;
     }());
-    gg.TweenStep = TweenStep;
+    createjs.TweenStep = TweenStep;
     ;
     var TweenAction = /** @class */ (function () {
         function TweenAction(prev, t, scope, funct, params) {
@@ -37,7 +37,7 @@ var gg;
         }
         return TweenAction;
     }());
-    gg.TweenAction = TweenAction;
+    createjs.TweenAction = TweenAction;
     ;
     var Tween = /** @class */ (function (_super) {
         __extends(Tween, _super);
@@ -94,7 +94,7 @@ var gg;
         };
         ;
         Tween.handleEvent = function (event) {
-            if (event.type === gg.Ticker.TickName) {
+            if (event.type === createjs.Ticker.TickName) {
                 this.tick(event.delta, event.paused);
             }
         };
@@ -133,7 +133,7 @@ var gg;
             return !!Tween.tweenHead;
         };
         ;
-        Tween._installPlugin = function (plugin) {
+        Tween.installPlugin = function (plugin) {
             var priority = (plugin.priority = plugin.priority || 0), arr = (Tween.plugins = Tween.plugins || []);
             for (var i = 0, l = arr.length; i < l; i++) {
                 if (priority < arr[i].priority) {
@@ -159,8 +159,8 @@ var gg;
                     tween.prev = tail;
                 }
                 tween.status = Tween.inTick ? 1 : 0;
-                if (!Tween.inited && gg.Ticker) {
-                    gg.Ticker.addEventListener(gg.Ticker.TickName, Tween);
+                if (!Tween.inited && createjs.Ticker) {
+                    createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);
                     Tween.inited = true;
                 }
             }
@@ -428,12 +428,12 @@ var gg;
         Tween.tweenTail = null;
         Tween.inTick = 0;
         return Tween;
-    }(gg.AbstractTween));
-    gg.Tween = Tween;
+    }(createjs.AbstractTween));
+    createjs.Tween = Tween;
     // tiny api (primarily for tool output):
     Tween.prototype.w = Tween.prototype.wait;
     Tween.prototype.t = Tween.prototype.to;
     Tween.prototype.c = Tween.prototype.call;
     Tween.prototype.s = Tween.prototype.set;
-})(gg || (gg = {}));
+})(createjs || (createjs = {}));
 //# sourceMappingURL=Tween.js.map

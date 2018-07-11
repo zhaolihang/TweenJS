@@ -1,5 +1,5 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var target = { _x: 0 };
     Object.defineProperty(target, 'x', {
         get: function () {
@@ -9,8 +9,8 @@ var gg;
             target._x = v;
         }
     });
-    gg.Tween.get(target).to({ x: 100 }, 1000);
+    createjs.Tween.get(target).to({ x: 100 }, 1000);
     // Tween.tick(1/60);
     // Tween.tick(1/60);
-})(gg || (gg = {}));
+})(createjs || (createjs = {}));
 //# sourceMappingURL=index.js.map

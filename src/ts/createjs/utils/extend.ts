@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 	export function extend(subclass, superclass) {
 		"use strict";
 

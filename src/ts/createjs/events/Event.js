@@ -1,5 +1,5 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var Event = /** @class */ (function () {
         function Event(type, bubbles, cancelable) {
             this.type = type;
@@ -47,6 +47,6 @@ var gg;
         ;
         return Event;
     }());
-    gg.Event = Event;
-})(gg || (gg = {}));
+    createjs.Event = Event;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=Event.js.map

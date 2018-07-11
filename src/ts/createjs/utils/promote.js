@@ -70,8 +70,8 @@ this.createjs = this.createjs || {};
  * @param {String} prefix The prefix to add to the promoted method names. Usually the name of the superclass.
  * @return {Function} Returns the subclass.
  */
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     function promote(subclass, prefix) {
         "use strict";
         var subP = subclass.prototype, supP = (Object.getPrototypeOf && Object.getPrototypeOf(subP)) || subP.__proto__;
@@ -85,6 +85,6 @@ var gg;
         }
         return subclass;
     }
-    gg.promote = promote;
-})(gg || (gg = {}));
+    createjs.promote = promote;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=promote.js.map

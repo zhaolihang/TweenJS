@@ -8,8 +8,8 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var AbstractTween = /** @class */ (function (_super) {
         __extends(AbstractTween, _super);
         function AbstractTween(props) {
@@ -46,7 +46,7 @@ var gg;
                 return this._paused;
             },
             set: function (value) {
-                gg.Tween.register(this, value);
+                createjs.Tween.register(this, value);
             },
             enumerable: true,
             configurable: true
@@ -288,7 +288,7 @@ var gg;
         AbstractTween.Change = 'change';
         AbstractTween.Complete = 'complete';
         return AbstractTween;
-    }(gg.EventDispatcher));
-    gg.AbstractTween = AbstractTween;
-})(gg || (gg = {}));
+    }(createjs.EventDispatcher));
+    createjs.AbstractTween = AbstractTween;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=AbstractTween.js.map

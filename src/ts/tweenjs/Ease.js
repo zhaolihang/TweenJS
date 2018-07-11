@@ -1,12 +1,12 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var Ease = /** @class */ (function () {
         function Ease() {
             throw "Ease cannot be instantiated.";
         }
         return Ease;
     }());
-    gg.Ease = Ease;
+    createjs.Ease = Ease;
     Ease.bounceOut = function (t) {
         if (t < 1 / 2.75) {
             return (7.5625 * t * t);
@@ -148,5 +148,5 @@ var gg;
         };
     };
     Ease.elasticInOut = Ease.getElasticInOut(1, 0.3 * 1.5);
-})(gg || (gg = {}));
+})(createjs || (createjs = {}));
 //# sourceMappingURL=Ease.js.map

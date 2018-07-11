@@ -1,5 +1,5 @@
 
-namespace gg {
+namespace createjs {
 	export class Ticker {
 		static RAF_SYNCHED: string;
 		static RAF: string;
@@ -89,7 +89,7 @@ namespace gg {
 	Ticker._timerId = null;
 	Ticker._raf = true;
 
-	gg.EventDispatcher.initialize(Ticker);
+	createjs.EventDispatcher.initialize(Ticker);
 	Ticker._addEventListener = Ticker.addEventListener;
 	Ticker.addEventListener = function () {
 		!Ticker._inited && Ticker.init();
@@ -223,7 +223,7 @@ namespace gg {
 		}
 
 		if (Ticker.hasEventListener(Ticker.TickName)) {
-			var event: Event & FreeType = new gg.Event(Ticker.TickName);
+			var event: Event & FreeType = new createjs.Event(Ticker.TickName);
 			var maxDelta = Ticker.maxDelta;
 			event.delta = (maxDelta && elapsedTime > maxDelta) ? maxDelta : elapsedTime;
 			event.paused = paused;

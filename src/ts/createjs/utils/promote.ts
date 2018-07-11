@@ -75,7 +75,7 @@ this.createjs = this.createjs || {};
  * @return {Function} Returns the subclass.
  */
 
-namespace gg {
+namespace createjs {
 	export function promote<T extends Function>(subclass: T, prefix: string) {
 		"use strict";
 

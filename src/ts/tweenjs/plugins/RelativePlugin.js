@@ -70,7 +70,7 @@ this.createjs = this.createjs||{};
 	 * @static
 	 **/
 	s.install = function() {
-		createjs.Tween._installPlugin(RelativePlugin);
+		createjs.Tween.installPlugin(RelativePlugin);
 	};
 	
 	/**
@@ -84,7 +84,7 @@ this.createjs = this.createjs||{};
 	 * @static
 	 **/
 	s.init = function(tween, prop, value) {
-		if (!tween.pluginData.Relative_disabled) { tween._addPlugin(s); }
+		if (!tween.pluginData.Relative_disabled) { tween.addPlugin(s); }
 	};
 	
 	/**

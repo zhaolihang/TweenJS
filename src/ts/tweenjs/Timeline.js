@@ -8,8 +8,8 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var Timeline = /** @class */ (function (_super) {
         __extends(Timeline, _super);
         function Timeline(props) {
@@ -129,7 +129,7 @@ var gg;
         };
         ;
         return Timeline;
-    }(gg.AbstractTween));
-    gg.Timeline = Timeline;
-})(gg || (gg = {}));
+    }(createjs.AbstractTween));
+    createjs.Timeline = Timeline;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=Timeline.js.map

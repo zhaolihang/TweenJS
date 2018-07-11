@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 
 	export class EventDispatcher {
 		_listeners: any;
@@ -79,7 +79,7 @@ namespace gg {
 				// skip everything if there's no listeners and it doesn't bubble:
 				var listeners = this._listeners;
 				if (!bubbles && (!listeners || !listeners[eventObj])) { return true; }
-				eventObj = new gg.Event(eventObj, bubbles, cancelable);
+				eventObj = new createjs.Event(eventObj, bubbles, cancelable);
 			} else if (eventObj.target && eventObj.clone) {
 				// redispatching an active event object, so clone it:
 				eventObj = eventObj.clone();

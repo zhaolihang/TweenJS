@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 
 
 	export class TweenStep {
@@ -160,7 +160,7 @@ namespace gg {
 			return !!Tween.tweenHead;
 		};
 
-		static _installPlugin(plugin: any) {
+		static installPlugin(plugin: any) {
 			var priority = (plugin.priority = plugin.priority || 0), arr = (Tween.plugins = Tween.plugins || []);
 			for (var i = 0, l = arr.length; i < l; i++) {
 				if (priority < arr[i].priority) { break; }
@@ -180,7 +180,7 @@ namespace gg {
 					tween.prev = tail;
 				}
 				tween.status = Tween.inTick ? 1 : 0;
-				if (!Tween.inited && gg.Ticker) { gg.Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
+				if (!Tween.inited && createjs.Ticker) { createjs.Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
 			} else if (paused && !tween._paused) {
 				if (target) { target.tweenjs_count--; }
 				// tick handles delist if we're in a tick stack and the tween hasn't advanced yet:

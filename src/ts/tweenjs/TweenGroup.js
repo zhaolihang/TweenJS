@@ -1,5 +1,5 @@
-var gg;
-(function (gg) {
+var createjs;
+(function (createjs) {
     var TweenGroup = /** @class */ (function () {
         function TweenGroup(paused, timeScale) {
             this._tweens = [];
@@ -44,7 +44,7 @@ var gg;
             configurable: true
         });
         TweenGroup.prototype.get = function (target, props) {
-            return this.add(gg.Tween.get(target, props));
+            return this.add(createjs.Tween.get(target, props));
         };
         TweenGroup.prototype.add = function (tween) {
             var l = arguments.length, tweens = this._tweens;
@@ -92,6 +92,6 @@ var gg;
         };
         return TweenGroup;
     }());
-    gg.TweenGroup = TweenGroup;
-})(gg || (gg = {}));
+    createjs.TweenGroup = TweenGroup;
+})(createjs || (createjs = {}));
 //# sourceMappingURL=TweenGroup.js.map

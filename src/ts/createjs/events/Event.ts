@@ -1,4 +1,4 @@
-namespace gg {
+namespace createjs {
 	export type FreeType = { [key: string]: any };
 
 	export class Event {

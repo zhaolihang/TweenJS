@@ -88,7 +88,7 @@ this.createjs = this.createjs||{};
 	 **/
 	s.install = function(props) {
 		if (props) { s._props = props; }
-		createjs.Tween._installPlugin(RotationPlugin);
+		createjs.Tween.installPlugin(RotationPlugin);
 	};
 	
 	/**
@@ -105,7 +105,7 @@ this.createjs = this.createjs||{};
 		if (s._props[prop] && !tween.pluginData.Rotation_disabled) {
 			var data = tween.pluginData, end = data.Rotation_end || (data.Rotation_end = {});
 			end[prop] = value === undefined ? tween.target[prop] : value;
-			tween._addPlugin(s);
+			tween.addPlugin(s);
 		}
 	};
 	
