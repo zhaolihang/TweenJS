@@ -75,11 +75,11 @@ namespace createjs {
 
 		constructor(target: TargetType, props?: TweenProps) {
 			super(props);
+			this.target = target;
+
 			this.next = null;
 			this.prev = null;
-
 			this.pluginData = null;
-			this.target = target;
 			this.passive = false;
 			this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
 			this.stepTail = this.stepHead;
@@ -116,8 +116,8 @@ namespace createjs {
 			while (tween) {
 				var next = tween.next, status = tween.status;
 				tween.lastTick = t;
-				if (status === 1) { tween.status = 0; } // new, ignore
-				else if (status === -1) { Tween.delist(tween); } // removed, delist
+				if (status === TweenState.AddedToList) { tween.status = TweenState.InList; } // new, ignore
+				else if (status === TweenState.Remvoed) { Tween.delist(tween); } // removed, delist
 				else if ((paused && !tween.ignoreGlobalPause) || tween._paused) { /* paused */ }
 				else { tween.advance(tween.useTicks ? 1 : delta); }
 				tween = next;
@@ -173,20 +173,23 @@ namespace createjs {
 			var target = tween.target;
 			if (!paused && tween._paused) {
 				// TODO: this approach might fail if a dev is using sealed objects
-				if (target) { target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1; }
+				if (target) {
+					target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1;
+				}
 				var tail = Tween.tweenTail;
-				if (!tail) { Tween.tweenHead = Tween.tweenTail = tween; }
-				else {
+				if (!tail) {
+					Tween.tweenHead = Tween.tweenTail = tween;
+				} else {
 					Tween.tweenTail = tail.next = tween;
 					tween.prev = tail;
 				}
-				tween.status = Tween.inTick ? 1 : 0;
+				tween.status = Tween.inTick ? TweenState.AddedToList : TweenState.InList;
 				if (!Tween.inited && Ticker) { Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
 			} else if (paused && !tween._paused) {
 				if (target) { target.tweenjs_count--; }
 				// tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
 				if (!Tween.inTick || tween.lastTick === Tween.inTick) { Tween.delist(tween); }
-				tween.status = -1;
+				tween.status = TweenState.Remvoed;
 			}
 			tween._paused = paused;
 		};

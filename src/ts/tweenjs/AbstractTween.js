@@ -10,6 +10,18 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var createjs;
 (function (createjs) {
+    var TweenState;
+    (function (TweenState) {
+        /*
+        * Status in tick list:
+        * -1 = remvoed from list (or to be removed in this tick stack)
+        * 0 = in list
+        * 1 = added to list in the current tick stack
+        */
+        TweenState[TweenState["Remvoed"] = -1] = "Remvoed";
+        TweenState[TweenState["InList"] = 0] = "InList";
+        TweenState[TweenState["AddedToList"] = 1] = "AddedToList";
+    })(TweenState = createjs.TweenState || (createjs.TweenState = {}));
     var AbstractTween = /** @class */ (function (_super) {
         __extends(AbstractTween, _super);
         function AbstractTween(props) {
@@ -27,7 +39,7 @@ var createjs;
             _this.timeline = null;
             _this.labels = null;
             _this.labelList = null;
-            _this.status = -1;
+            _this.status = TweenState.Remvoed;
             _this.lastTick = 0;
             if (props) {
                 _this.useTicks = !!props.useTicks;

@@ -43,10 +43,10 @@ var createjs;
         __extends(Tween, _super);
         function Tween(target, props) {
             var _this = _super.call(this, props) || this;
+            _this.target = target;
             _this.next = null;
             _this.prev = null;
             _this.pluginData = null;
-            _this.target = target;
             _this.passive = false;
             _this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
             _this.stepTail = _this.stepHead;
@@ -78,10 +78,10 @@ var createjs;
             while (tween) {
                 var next = tween.next, status = tween.status;
                 tween.lastTick = t;
-                if (status === 1) {
-                    tween.status = 0;
+                if (status === createjs.TweenState.AddedToList) {
+                    tween.status = createjs.TweenState.InList;
                 } // new, ignore
-                else if (status === -1) {
+                else if (status === createjs.TweenState.Remvoed) {
                     Tween.delist(tween);
                 } // removed, delist
                 else if ((paused && !tween.ignoreGlobalPause) || tween._paused) { }
@@ -158,7 +158,7 @@ var createjs;
                     Tween.tweenTail = tail.next = tween;
                     tween.prev = tail;
                 }
-                tween.status = Tween.inTick ? 1 : 0;
+                tween.status = Tween.inTick ? createjs.TweenState.AddedToList : createjs.TweenState.InList;
                 if (!Tween.inited && createjs.Ticker) {
                     createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);
                     Tween.inited = true;
@@ -172,7 +172,7 @@ var createjs;
                 if (!Tween.inTick || tween.lastTick === Tween.inTick) {
                     Tween.delist(tween);
                 }
-                tween.status = -1;
+                tween.status = createjs.TweenState.Remvoed;
             }
             tween._paused = paused;
         };

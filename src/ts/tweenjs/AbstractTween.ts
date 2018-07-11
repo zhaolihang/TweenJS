@@ -13,6 +13,18 @@ namespace createjs {
 		position?: number,
 	}
 
+	export enum TweenState {
+		/*
+		* Status in tick list:
+		* -1 = remvoed from list (or to be removed in this tick stack)
+		* 0 = in list
+		* 1 = added to list in the current tick stack
+		*/
+		Remvoed = -1,
+		InList = 0,
+		AddedToList = 1,
+	}
+
 	export abstract class AbstractTween extends EventDispatcher {
 
 		public static readonly Change = 'change';
@@ -34,13 +46,7 @@ namespace createjs {
 		private labels: { [lable: string]: number };
 		private labelList?: { label: string, position: number }[];
 
-		/*
-		* Status in tick list:
-		* -1 = remvoed from list (or to be removed in this tick stack)
-		* 0 = in list
-		* 1 = added to list in the current tick stack
-		*/
-		status: number;
+		status: TweenState;
 		lastTick: number;
 
 		actionHead: TweenAction;
@@ -63,7 +69,7 @@ namespace createjs {
 			this.timeline = null;
 			this.labels = null;
 			this.labelList = null;
-			this.status = -1;
+			this.status = TweenState.Remvoed;
 			this.lastTick = 0;
 
 			if (props) {
