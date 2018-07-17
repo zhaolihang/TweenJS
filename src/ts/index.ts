@@ -11,7 +11,7 @@ namespace createjs {
 
     Tween.get(target).to({ x: 100 }, 1000);
 
-    Tween.tick(1 / 60);
+    // Tween.tick(1 / 60, false);
 
-    Tween.tick(1 / 60);
+    // Tween.tick(1 / 60, false);
 }

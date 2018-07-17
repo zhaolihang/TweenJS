@@ -2,15 +2,13 @@ namespace createjs {
 
 	export interface AbstractTweenProps {
 		useTicks?: boolean;
-		ignoreGlobalPause?: boolean;
 		loop?: boolean | number;
 		reversed?: boolean;
 		bounce?: boolean;
 		timeScale?: number;
 		onChange?: (e: Event) => void,
 		onComplete?: (e: Event) => void,
-		paused?: boolean,
-		position?: number,
+
 	}
 
 	export enum TweenState {
@@ -30,7 +28,6 @@ namespace createjs {
 		public static readonly Change = 'change';
 		public static readonly Complete = 'complete';
 
-		ignoreGlobalPause: boolean;
 		loop: number;
 		useTicks: boolean;
 		reversed: boolean;
@@ -41,7 +38,6 @@ namespace createjs {
 		rawPosition: number;
 
 		_paused: boolean;
-		timeline: Timeline;
 
 		private labels: { [lable: string]: number };
 		private labelList?: { label: string, position: number }[];
@@ -52,11 +48,9 @@ namespace createjs {
 		actionHead: TweenAction;
 		actionTail: TweenAction;
 
-		tweens: Tween[];
 		constructor(props?: AbstractTweenProps) {
 			super();
 
-			this.ignoreGlobalPause = false;
 			this.loop = 0;
 			this.useTicks = false;
 			this.reversed = false;
@@ -64,9 +58,8 @@ namespace createjs {
 			this.timeScale = 1;
 			this.duration = 0;
 			this.position = 0;
-			this.rawPosition = -1;
+			this.rawPosition = 0;
 			this._paused = true;
-			this.timeline = null;
 			this.labels = null;
 			this.labelList = null;
 			this.status = TweenState.Removed;
@@ -74,7 +67,6 @@ namespace createjs {
 
 			if (props) {
 				this.useTicks = !!props.useTicks;
-				this.ignoreGlobalPause = !!props.ignoreGlobalPause;
 				this.loop = props.loop === true ? -1 : (props.loop || 0);
 				this.reversed = !!props.reversed;
 				this.bounce = !!props.bounce;
@@ -83,7 +75,6 @@ namespace createjs {
 				props.onComplete && this.addEventListener(AbstractTween.Complete, props.onComplete);
 			}
 		}
-
 
 		set paused(value) {
 			Tween.register(<any>this, value);
@@ -103,47 +94,56 @@ namespace createjs {
 			return (i === 0) ? null : labels[i - 1].label;
 		};
 
-		public advance(delta: number, ignoreActions?: boolean) {
-			this.setPosition(this.rawPosition + delta * this.timeScale, ignoreActions);
+		public advance(delta: number) {
+			this.setPosition(this.rawPosition + delta * this.timeScale, false, false);
 		};
 
-		public setPosition(rawPosition: number, ignoreActions?: boolean, jump?: boolean, callback?: (tween: AbstractTween) => void): void {
+		public setPosition(rawPosition: number, ignoreActions: boolean, jump: boolean): void {
 
 			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
 			var loop = 0, t = 0, end = false;
 
 			// normalize position:
-			if (rawPosition < 0) { rawPosition = 0; }
+			// if (rawPosition < 0) { rawPosition = 0; }
 
 			if (d === 0) {
 				// deal with 0 length tweens.
 				end = true;
-				if (prevRawPos !== -1) { return; } // we can avoid doing anything else if we're already at 0.
+				// if (prevRawPos !== -1) { return; } // we can avoid doing anything else if we're already at 0.
 			} else {
 				loop = rawPosition / d | 0;// 向下取整
 				t = rawPosition - loop * d;
 
 				end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
-				if (end) { rawPosition = (t = d) * (loop = loopCount) + d; }
-				if (rawPosition === prevRawPos) { return; } // no need to update
+				if (end) {
+					rawPosition = (t = d) * (loop = loopCount) + d;
+				}
+				if (rawPosition === prevRawPos) {
+					return;// no need to update
+				}
 
-				var rev = !this.reversed !== !(this.bounce && loop % 2); // current loop is reversed
-				if (rev) { t = d - t; }
+				if (!this.reversed !== !(this.bounce && loop % 2)) {// current loop is reversed
+					t = d - t;
+				}
 			}
 
 			// set this in advance in case an action modifies position:
 			this.position = t;
 			this.rawPosition = rawPosition;
 
-			this.updatePosition(jump, end);
-			if (end) { this.paused = true; }
+			this.updatePosition(end);
+			if (end) {
+				this.paused = true;
+			}
 
-			callback && callback(this);
+			if (!ignoreActions) {
+				this.runActions(prevRawPos, rawPosition, jump, !jump);
+			}
 
-			if (!ignoreActions) { this.runActions(prevRawPos, rawPosition, jump, !jump && prevRawPos === -1); }
-
-			this.dispatchEvent(AbstractTween.Change);
-			if (end) { this.dispatchEvent(AbstractTween.Complete); }
+			// this.dispatchEvent(AbstractTween.Change);
+			if (end) {
+				this.dispatchEvent(AbstractTween.Complete);
+			}
 		};
 
 		public calculatePosition(rawPosition: number) {
@@ -207,16 +207,7 @@ namespace createjs {
 			return "[AbstractTween]";
 		};
 
-		public clone() {
-			throw ("AbstractTween can not be cloned.")
-		};
-
-		protected init(props?: AbstractTweenProps) {
-			if (!props || !props.paused) { this.paused = false; }
-			if (props && (props.position != null)) { this.setPosition(props.position); }
-		};
-
-		protected updatePosition(jump: boolean, end: boolean) {
+		protected updatePosition(end: boolean) {
 			// abstract.
 		};
 
@@ -225,14 +216,16 @@ namespace createjs {
 			if (pos != null) { this.setPosition(pos, false, true); }
 		};
 
-		public runActions(startRawPos: number, endRawPos: number, jump?: boolean, includeStart?: boolean) {
+		public runActions(startRawPos: number, endRawPos: number, jump: boolean, includeStart: boolean) {
 			// runs actions between startPos & endPos. Separated to support action deferral.
 
 			//console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
 
 			// if we don't have any actions, and we're not a Timeline, then return:
 			// TODO: a cleaner way to handle this would be to override this method in Tween, but I'm not sure it's worth the overhead.
-			if (!this.actionHead && !this.tweens) { return; }
+			if (!this.actionHead) {
+				return;
+			}
 
 			var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
 			var loop0: number, loop1: number, t0: number, t1: number;

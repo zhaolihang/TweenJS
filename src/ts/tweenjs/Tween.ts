@@ -47,72 +47,72 @@ namespace createjs {
 
 	export interface TweenProps extends AbstractTweenProps {
 		pluginData?: any;
-		override?: boolean;
+		paused?: boolean,
+		position?: number,
 	}
 
 	export class Tween extends AbstractTween {
-		public pluginData: any;
-		public target: TargetType;
-		private stepHead: TweenStep;
-		private stepTail: TweenStep;
-
-		private next: Tween;
-		private prev: Tween;
-
-		// The position within the current step. Used by MovieClip.
-		private stepPosition: number;
-
-		plugins: any;
-		pluginIds: any;
-
-		injected: any;
-		passive: boolean;
 
 		static inited: boolean;
 
-		w: (duration: number, passive: boolean) => Tween;
-		t: (props: FreeType, duration: number, ease?: EaseFun) => Tween;
-		c: (callback: FreeFuncionType, params: any, scope: any) => Tween;
-		s: (props: any, target: TargetType) => Tween;
-
-		constructor(target: TargetType, props?: TweenProps) {
-			super(props);
-			this.target = target;
-
-			this.next = null;
-			this.prev = null;
-			this.pluginData = null;
-			this.passive = false;
-			this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
-			this.stepTail = this.stepHead;
-			this.stepPosition = 0;
-			this.actionHead = null;
-			this.actionTail = null;
-			this.plugins = null;
-			this.pluginIds = null;
-			this.injected = null;
-			if (props) {
-				this.pluginData = props.pluginData;
-				if (props.override) { Tween.removeTweens(target); }
-			}
-			if (!this.pluginData) { this.pluginData = {}; }
-			this.init(props);
-		}
-
-
-
 		static IGNORE = {};
-		static tweens = [];
 		static plugins = null;
 		static tweenHead: Tween = null;
 		static tweenTail: Tween = null;
 		static isInTick = 0;
 
+		static register(tween: Tween, paused: boolean) {
+			var target = tween.target;
+
+			if (!paused && tween._paused) {// 添加
+
+				// TODO: this approach might fail if a dev is using sealed objects
+				if (target) {
+					target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1;
+				}
+				var tail = Tween.tweenTail;
+				if (!tail) {
+					Tween.tweenHead = Tween.tweenTail = tween;
+				} else {
+					Tween.tweenTail = tail.next = tween;
+					tween.prev = tail;
+				}
+
+				tween.status = Tween.isInTick ? TweenState.NewAdded : TweenState.InList;
+
+				if (!Tween.inited) {
+					if (Ticker) {
+						Ticker.addEventListener(Ticker.TickName, Tween);
+					}
+					Tween.inited = true;
+				}
+			} else if (paused && !tween._paused) {// 移除
+				if (target) {
+					target.tweenjs_count--;
+				}
+				// tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
+				if (!Tween.isInTick || tween.lastTick === Tween.isInTick) { // 不在tick函数中或者已经执行完了,可以安全删除
+					Tween.delist(tween);
+				}
+				tween.status = TweenState.Removed;
+			}
+			tween._paused = paused;
+		};
+
+		private static delist(tween: Tween) {
+			var next = tween.next, prev = tween.prev;
+			if (next) { next.prev = prev; }
+			else { Tween.tweenTail = prev; } // was tail
+			if (prev) { prev.next = next; }
+			else { Tween.tweenHead = next; } // was head.
+			tween.next = tween.prev = null;
+		}
+
 		static get(target: TargetType, props?: TweenProps) {
 			return new Tween(target, props);
 		};
 
-		static tick(delta: number, paused?: boolean) {
+		static tick(delta: number, paused: boolean) {
 			var tween = Tween.tweenHead;
 			var t = Tween.isInTick = Date.now();
 			while (tween) {
@@ -123,7 +123,7 @@ namespace createjs {
 					tween.status = TweenState.InList; // new, ignore
 				} else if (status === TweenState.Removed) {
 					Tween.delist(tween);// removed, delist
-				} else if ((paused && !tween.ignoreGlobalPause) || tween._paused) {
+				} else if (paused || tween._paused) {
 					/* paused */
 				} else {
 					tween.advance(tween.useTicks ? 1 : delta);
@@ -151,7 +151,6 @@ namespace createjs {
 			target.tweenjs_count = 0;
 		};
 
-
 		static removeAllTweens() {
 			var tween = Tween.tweenHead;
 			while (tween) {
@@ -163,7 +162,6 @@ namespace createjs {
 			}
 			Tween.tweenHead = Tween.tweenTail = null;
 		};
-
 
 		static hasActiveTweens(target: TargetType) {
 			if (target) { return !!target.tweenjs_count; }
@@ -178,46 +176,55 @@ namespace createjs {
 			arr.splice(i, 0, plugin);
 		};
 
-		static register(tween: Tween, paused: boolean) {
-			var target = tween.target;
-			if (!paused && tween._paused) {
-				// TODO: this approach might fail if a dev is using sealed objects
-				if (target) {
-					target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1;
-				}
-				var tail = Tween.tweenTail;
-				if (!tail) {
-					Tween.tweenHead = Tween.tweenTail = tween;
-				} else {
-					Tween.tweenTail = tail.next = tween;
-					tween.prev = tail;
-				}
-				tween.status = Tween.isInTick ? TweenState.NewAdded : TweenState.InList;
-				if (!Tween.inited && Ticker) { Ticker.addEventListener(Ticker.TickName, Tween); Tween.inited = true; }
-			} else if (paused && !tween._paused) {
-				if (target) { target.tweenjs_count--; }
-				// tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
-				if (!Tween.isInTick || tween.lastTick === Tween.isInTick) { Tween.delist(tween); }
-				tween.status = TweenState.Removed;
+		public pluginData: any;
+		public target: TargetType;
+		private stepHead: TweenStep;
+		private stepTail: TweenStep;
+
+		private next: Tween;
+		private prev: Tween;
+
+		plugins: any;
+		pluginIds: any;
+
+		passive: boolean;
+
+		constructor(target: TargetType, props?: TweenProps) {
+			super(props);
+			this.target = target;
+
+			this.next = null;
+			this.prev = null;
+			this.pluginData = null;
+			this.passive = false;
+			this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
+			this.stepTail = this.stepHead;
+			this.actionHead = null;
+			this.actionTail = null;
+			this.plugins = null;
+			this.pluginIds = null;
+
+			if (props) {
+				this.pluginData = props.pluginData;
 			}
-			tween._paused = paused;
-		};
 
-		private static delist(tween: Tween) {
-			var next = tween.next, prev = tween.prev;
-			if (next) { next.prev = prev; }
-			else { Tween.tweenTail = prev; } // was tail
-			if (prev) { prev.next = next; }
-			else { Tween.tweenHead = next; } // was head.
-			tween.next = tween.prev = null;
+			if (!this.pluginData) {
+				this.pluginData = {};
+			}
+
+			if (!props || !props.paused) {
+				this.paused = false;
+			}
+
+			if (props && (props.position != null)) {
+				this.setPosition(props.position, false, false);
+			}
 		}
-
 
 		public wait(duration: number, passive: boolean) {
 			if (duration > 0) { this.addStep(+duration, this.stepTail.props, null, passive); }
 			return this;
 		};
-
 
 		public to(props: FreeType, duration: number, ease?: EaseFun) {
 			if (duration == null || duration < 0) { duration = 0; }
@@ -268,7 +275,7 @@ namespace createjs {
 			plugins.push(plugin);
 		};
 
-		protected updatePosition(jump: boolean, end: boolean) {
+		protected updatePosition(end: boolean) {
 			var step = this.stepHead.next, t = this.position, d = this.duration;
 			if (this.target && step) {
 				// find our new step index:
@@ -277,7 +284,6 @@ namespace createjs {
 				var ratio = end ? d === 0 ? 1 : t / d : (t - step.t) / step.d; // TODO: revisit this.
 				this.updateTargetProps(step, ratio, end);
 			}
-			this.stepPosition = step ? t - step.t : 0;
 		};
 
 		private updateTargetProps(step: TweenStep, ratio: number, end: boolean) {
@@ -378,16 +384,6 @@ namespace createjs {
 				}
 			}
 
-			if (inject = this.injected) {
-				this.injected = null;
-				this.appendProps(inject, step, false);
-			}
-		};
-
-
-		public injectProp(name: string, value: any) {
-			var o = this.injected || (this.injected = {});
-			o[name] = value;
 		};
 
 		private addStep(duration: number, props: any, ease: EaseFun, passive?: boolean) {
@@ -395,7 +391,6 @@ namespace createjs {
 			this.duration += duration;
 			return this.stepTail = (this.stepTail.next = step);// 放到链表的最后
 		};
-
 
 		private addAction(scope: any, funct: FreeFuncionType, params: any) {
 			var action = new TweenAction(this.actionTail, this.duration, scope, funct, params);
@@ -415,15 +410,6 @@ namespace createjs {
 			return "[Tween]";
 		};
 
-		public clone() {
-			throw ("Tween can not be cloned.")
-		};
 	}
 
-
-	// tiny api (primarily for tool output):
-	Tween.prototype.w = Tween.prototype.wait;
-	Tween.prototype.t = Tween.prototype.to;
-	Tween.prototype.c = Tween.prototype.call;
-	Tween.prototype.s = Tween.prototype.set;
 }

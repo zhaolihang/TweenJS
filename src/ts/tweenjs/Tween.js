@@ -50,24 +50,76 @@ var createjs;
             _this.passive = false;
             _this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
             _this.stepTail = _this.stepHead;
-            _this.stepPosition = 0;
             _this.actionHead = null;
             _this.actionTail = null;
             _this.plugins = null;
             _this.pluginIds = null;
-            _this.injected = null;
             if (props) {
                 _this.pluginData = props.pluginData;
-                if (props.override) {
-                    Tween.removeTweens(target);
-                }
             }
             if (!_this.pluginData) {
                 _this.pluginData = {};
             }
-            _this.init(props);
+            if (!props || !props.paused) {
+                _this.paused = false;
+            }
+            if (props && (props.position != null)) {
+                _this.setPosition(props.position, false, false);
+            }
             return _this;
         }
+        Tween.register = function (tween, paused) {
+            var target = tween.target;
+            if (!paused && tween._paused) {
+                // TODO: this approach might fail if a dev is using sealed objects
+                if (target) {
+                    target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1;
+                }
+                var tail = Tween.tweenTail;
+                if (!tail) {
+                    Tween.tweenHead = Tween.tweenTail = tween;
+                }
+                else {
+                    Tween.tweenTail = tail.next = tween;
+                    tween.prev = tail;
+                }
+                tween.status = Tween.isInTick ? createjs.TweenState.NewAdded : createjs.TweenState.InList;
+                if (!Tween.inited) {
+                    if (createjs.Ticker) {
+                        createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);
+                    }
+                    Tween.inited = true;
+                }
+            }
+            else if (paused && !tween._paused) {
+                if (target) {
+                    target.tweenjs_count--;
+                }
+                // tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
+                if (!Tween.isInTick || tween.lastTick === Tween.isInTick) {
+                    Tween.delist(tween);
+                }
+                tween.status = createjs.TweenState.Removed;
+            }
+            tween._paused = paused;
+        };
+        ;
+        Tween.delist = function (tween) {
+            var next = tween.next, prev = tween.prev;
+            if (next) {
+                next.prev = prev;
+            }
+            else {
+                Tween.tweenTail = prev;
+            } // was tail
+            if (prev) {
+                prev.next = next;
+            }
+            else {
+                Tween.tweenHead = next;
+            } // was head.
+            tween.next = tween.prev = null;
+        };
         Tween.get = function (target, props) {
             return new Tween(target, props);
         };
@@ -84,7 +136,7 @@ var createjs;
                 else if (status === createjs.TweenState.Removed) {
                     Tween.delist(tween); // removed, delist
                 }
-                else if ((paused && !tween.ignoreGlobalPause) || tween._paused) {
+                else if (paused || tween._paused) {
                     /* paused */
                 }
                 else {
@@ -145,56 +197,6 @@ var createjs;
             arr.splice(i, 0, plugin);
         };
         ;
-        Tween.register = function (tween, paused) {
-            var target = tween.target;
-            if (!paused && tween._paused) {
-                // TODO: this approach might fail if a dev is using sealed objects
-                if (target) {
-                    target.tweenjs_count = target.tweenjs_count ? target.tweenjs_count + 1 : 1;
-                }
-                var tail = Tween.tweenTail;
-                if (!tail) {
-                    Tween.tweenHead = Tween.tweenTail = tween;
-                }
-                else {
-                    Tween.tweenTail = tail.next = tween;
-                    tween.prev = tail;
-                }
-                tween.status = Tween.isInTick ? createjs.TweenState.NewAdded : createjs.TweenState.InList;
-                if (!Tween.inited && createjs.Ticker) {
-                    createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);
-                    Tween.inited = true;
-                }
-            }
-            else if (paused && !tween._paused) {
-                if (target) {
-                    target.tweenjs_count--;
-                }
-                // tick handles delist if we're in a tick stack and the tween hasn't advanced yet:
-                if (!Tween.isInTick || tween.lastTick === Tween.isInTick) {
-                    Tween.delist(tween);
-                }
-                tween.status = createjs.TweenState.Removed;
-            }
-            tween._paused = paused;
-        };
-        ;
-        Tween.delist = function (tween) {
-            var next = tween.next, prev = tween.prev;
-            if (next) {
-                next.prev = prev;
-            }
-            else {
-                Tween.tweenTail = prev;
-            } // was tail
-            if (prev) {
-                prev.next = next;
-            }
-            else {
-                Tween.tweenHead = next;
-            } // was head.
-            tween.next = tween.prev = null;
-        };
         Tween.prototype.wait = function (duration, passive) {
             if (duration > 0) {
                 this.addStep(+duration, this.stepTail.props, null, passive);
@@ -252,7 +254,7 @@ var createjs;
             plugins.push(plugin);
         };
         ;
-        Tween.prototype.updatePosition = function (jump, end) {
+        Tween.prototype.updatePosition = function (end) {
             var step = this.stepHead.next, t = this.position, d = this.duration;
             if (this.target && step) {
                 // find our new step index:
@@ -264,7 +266,6 @@ var createjs;
                 var ratio = end ? d === 0 ? 1 : t / d : (t - step.t) / step.d; // TODO: revisit this.
                 this.updateTargetProps(step, ratio, end);
             }
-            this.stepPosition = step ? t - step.t : 0;
         };
         ;
         Tween.prototype.updateTargetProps = function (step, ratio, end) {
@@ -378,15 +379,6 @@ var createjs;
                     plugins[i].step(this, step, cleanProps);
                 }
             }
-            if (inject = this.injected) {
-                this.injected = null;
-                this.appendProps(inject, step, false);
-            }
-        };
-        ;
-        Tween.prototype.injectProp = function (name, value) {
-            var o = this.injected || (this.injected = {});
-            o[name] = value;
         };
         ;
         Tween.prototype.addStep = function (duration, props, ease, passive) {
@@ -419,12 +411,7 @@ var createjs;
             return "[Tween]";
         };
         ;
-        Tween.prototype.clone = function () {
-            throw ("Tween can not be cloned.");
-        };
-        ;
         Tween.IGNORE = {};
-        Tween.tweens = [];
         Tween.plugins = null;
         Tween.tweenHead = null;
         Tween.tweenTail = null;
@@ -432,10 +419,5 @@ var createjs;
         return Tween;
     }(createjs.AbstractTween));
     createjs.Tween = Tween;
-    // tiny api (primarily for tool output):
-    Tween.prototype.w = Tween.prototype.wait;
-    Tween.prototype.t = Tween.prototype.to;
-    Tween.prototype.c = Tween.prototype.call;
-    Tween.prototype.s = Tween.prototype.set;
 })(createjs || (createjs = {}));
 //# sourceMappingURL=Tween.js.map

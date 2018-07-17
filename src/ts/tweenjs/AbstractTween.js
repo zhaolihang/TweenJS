@@ -26,7 +26,6 @@ var createjs;
         __extends(AbstractTween, _super);
         function AbstractTween(props) {
             var _this = _super.call(this) || this;
-            _this.ignoreGlobalPause = false;
             _this.loop = 0;
             _this.useTicks = false;
             _this.reversed = false;
@@ -34,16 +33,14 @@ var createjs;
             _this.timeScale = 1;
             _this.duration = 0;
             _this.position = 0;
-            _this.rawPosition = -1;
+            _this.rawPosition = 0;
             _this._paused = true;
-            _this.timeline = null;
             _this.labels = null;
             _this.labelList = null;
             _this.status = TweenState.Removed;
             _this.lastTick = 0;
             if (props) {
                 _this.useTicks = !!props.useTicks;
-                _this.ignoreGlobalPause = !!props.ignoreGlobalPause;
                 _this.loop = props.loop === true ? -1 : (props.loop || 0);
                 _this.reversed = !!props.reversed;
                 _this.bounce = !!props.bounce;
@@ -83,23 +80,19 @@ var createjs;
             return (i === 0) ? null : labels[i - 1].label;
         };
         ;
-        AbstractTween.prototype.advance = function (delta, ignoreActions) {
-            this.setPosition(this.rawPosition + delta * this.timeScale, ignoreActions);
+        AbstractTween.prototype.advance = function (delta) {
+            this.setPosition(this.rawPosition + delta * this.timeScale, false, false);
         };
         ;
-        AbstractTween.prototype.setPosition = function (rawPosition, ignoreActions, jump, callback) {
+        AbstractTween.prototype.setPosition = function (rawPosition, ignoreActions, jump) {
             var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
             var loop = 0, t = 0, end = false;
             // normalize position:
-            if (rawPosition < 0) {
-                rawPosition = 0;
-            }
+            // if (rawPosition < 0) { rawPosition = 0; }
             if (d === 0) {
                 // deal with 0 length tweens.
                 end = true;
-                if (prevRawPos !== -1) {
-                    return;
-                } // we can avoid doing anything else if we're already at 0.
+                // if (prevRawPos !== -1) { return; } // we can avoid doing anything else if we're already at 0.
             }
             else {
                 loop = rawPosition / d | 0; // 向下取整
@@ -109,25 +102,23 @@ var createjs;
                     rawPosition = (t = d) * (loop = loopCount) + d;
                 }
                 if (rawPosition === prevRawPos) {
-                    return;
-                } // no need to update
-                var rev = !this.reversed !== !(this.bounce && loop % 2); // current loop is reversed
-                if (rev) {
+                    return; // no need to update
+                }
+                if (!this.reversed !== !(this.bounce && loop % 2)) {
                     t = d - t;
                 }
             }
             // set this in advance in case an action modifies position:
             this.position = t;
             this.rawPosition = rawPosition;
-            this.updatePosition(jump, end);
+            this.updatePosition(end);
             if (end) {
                 this.paused = true;
             }
-            callback && callback(this);
             if (!ignoreActions) {
-                this.runActions(prevRawPos, rawPosition, jump, !jump && prevRawPos === -1);
+                this.runActions(prevRawPos, rawPosition, jump, !jump);
             }
-            this.dispatchEvent(AbstractTween.Change);
+            // this.dispatchEvent(AbstractTween.Change);
             if (end) {
                 this.dispatchEvent(AbstractTween.Complete);
             }
@@ -210,20 +201,7 @@ var createjs;
             return "[AbstractTween]";
         };
         ;
-        AbstractTween.prototype.clone = function () {
-            throw ("AbstractTween can not be cloned.");
-        };
-        ;
-        AbstractTween.prototype.init = function (props) {
-            if (!props || !props.paused) {
-                this.paused = false;
-            }
-            if (props && (props.position != null)) {
-                this.setPosition(props.position);
-            }
-        };
-        ;
-        AbstractTween.prototype.updatePosition = function (jump, end) {
+        AbstractTween.prototype.updatePosition = function (end) {
             // abstract.
         };
         ;
@@ -239,7 +217,7 @@ var createjs;
             //console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
             // if we don't have any actions, and we're not a Timeline, then return:
             // TODO: a cleaner way to handle this would be to override this method in Tween, but I'm not sure it's worth the overhead.
-            if (!this.actionHead && !this.tweens) {
+            if (!this.actionHead) {
                 return;
             }
             var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
