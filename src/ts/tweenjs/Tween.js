@@ -39,6 +39,124 @@ var createjs;
     }());
     createjs.TweenAction = TweenAction;
     ;
+    var Action = /** @class */ (function () {
+        function Action(target, startTime, duration) {
+            this.next = null;
+            this.prev = null;
+            this.ease = null;
+            this.inited = false;
+            this.target = target;
+            this.startTime = startTime;
+            this.duration = duration;
+            this.endTime = startTime + duration;
+        }
+        Action.prototype.setPosition = function (position, isReverse) {
+            var ratio = this.duration === 0 ? 1 : (position - this.startTime) / this.duration;
+            if (ratio < 0) {
+                ratio = 0;
+            }
+            else if (ratio > 1) {
+                ratio = 1;
+            }
+            if (this.ease) {
+                ratio = this.ease(ratio);
+            }
+            if (!this.inited) {
+                this.inited = true;
+                this.init();
+            }
+            this.update(ratio, isReverse);
+        };
+        Action.prototype.init = function () {
+            // override me
+        };
+        Action.prototype.update = function (ratio, isReverse) {
+            // override me
+        };
+        return Action;
+    }());
+    createjs.Action = Action;
+    ;
+    var MyTween = /** @class */ (function () {
+        function MyTween(target, frames, options) {
+            this.actionHead = null;
+            this.actionTail = null;
+            this.prevTime = 0;
+            this.duration = 0;
+            this.target = target;
+            this.loop = 0;
+            this.useTicks = false;
+            this.reversed = false;
+            this.bounce = false;
+            this.timeScale = 1;
+            if (options) {
+                this.loop = options.loop < 0 ? -1 : (options.loop || 0);
+                this.useTicks = !!options.useTicks;
+                this.reversed = !!options.reversed;
+                this.bounce = !!options.bounce;
+                this.timeScale = options.timeScale || 1;
+            }
+            this.initActions(frames);
+        }
+        MyTween.prototype.initActions = function (frames) {
+            frames.sort(function (a, b) {
+                return a.t - b.t;
+            });
+            for (var _i = 0, frames_1 = frames; _i < frames_1.length; _i++) {
+                var frame = frames_1[_i];
+                var action = new Action(this.target, frame.t, frame.dur);
+                var actionTail = this.actionTail;
+                if (!actionTail) {
+                    this.actionHead = this.actionTail = action;
+                }
+                else {
+                    this.actionTail = actionTail.next = action;
+                    action.prev = actionTail;
+                }
+                if (action.endTime > this.duration) {
+                    this.duration = action.endTime;
+                }
+            }
+        };
+        MyTween.prototype.setPosition = function (position) {
+            var prevTime = this.prevTime;
+            this.prevTime = position;
+            if (prevTime === position) {
+                return;
+            }
+            if (!this.actionHead) {
+                return;
+            }
+            if (position > prevTime) {
+                var action = this.actionHead;
+                var next = void 0;
+                while (action) {
+                    next = action.next;
+                    if (action.endTime < prevTime || action.startTime > position) {
+                        action = next;
+                        continue;
+                    }
+                    action.setPosition(position, false);
+                    action = next;
+                }
+            }
+            else {
+                var action = this.actionTail;
+                var prev = void 0;
+                while (action) {
+                    prev = action.prev;
+                    if (action.endTime < position || action.startTime > prevTime) {
+                        action = prev;
+                        continue;
+                    }
+                    action.setPosition(position, true);
+                    action = prev;
+                }
+            }
+        };
+        return MyTween;
+    }());
+    createjs.MyTween = MyTween;
     var TweenState;
     (function (TweenState) {
         /*

@@ -45,6 +45,157 @@ namespace createjs {
 		}
 	};
 
+
+
+	export class Action { // 基类
+
+		next: Action = null;
+		prev: Action = null;
+
+		ease: EaseFun = null;
+
+		protected inited = false;
+
+		target: any;
+		readonly startTime: number; // 时间线的时间
+		readonly endTime: number; // 时间线的时间
+		readonly duration: number;
+
+		constructor(target: any, startTime: number, duration: number) {
+			this.target = target;
+			this.startTime = startTime;
+			this.duration = duration;
+			this.endTime = startTime + duration;
+		}
+
+		public setPosition(position: number, isReverse: boolean) { // 时间线的时间
+			let ratio = this.duration === 0 ? 1 : (position - this.startTime) / this.duration;
+			if (ratio < 0) {
+				ratio = 0;
+			} else if (ratio > 1) {
+				ratio = 1;
+			}
+			if (this.ease) {
+				ratio = this.ease(ratio);
+			}
+			if (!this.inited) {
+				this.inited = true;
+				this.init();
+			}
+			this.update(ratio, isReverse);
+		}
+
+		protected init() {
+			// override me
+		}
+
+		protected update(ratio: number, isReverse: boolean) {
+			// override me
+		}
+	};
+
+	export interface KeyFrameData { t: number; dur: number; type: number; v: any; }
+	export interface MyTweenOptions {
+		loop?: number,
+		useTicks?: boolean,
+		reversed?: boolean,
+		bounce?: boolean,
+		timeScale?: number,
+	}
+
+	export class MyTween {
+		loop: number;
+		useTicks: boolean;
+		reversed: boolean;
+		bounce: boolean;
+		timeScale: number;
+		target: any;
+
+		private actionHead: Action = null;
+		private actionTail: Action = null;
+
+		private prevTime = 0;
+		private duration = 0;
+
+		constructor(target: any, frames: KeyFrameData[], options?: MyTweenOptions) {
+			this.target = target;
+
+			this.loop = 0;
+			this.useTicks = false;
+			this.reversed = false;
+			this.bounce = false;
+			this.timeScale = 1;
+			if (options) {
+				this.loop = options.loop < 0 ? -1 : (options.loop || 0);
+				this.useTicks = !!options.useTicks;
+				this.reversed = !!options.reversed;
+				this.bounce = !!options.bounce;
+				this.timeScale = options.timeScale || 1;
+			}
+
+			this.initActions(frames);
+		}
+
+		private initActions(frames: KeyFrameData[]) {
+			frames.sort((a, b) => {
+				return a.t - b.t;
+			});
+
+			for (const frame of frames) {
+				let action = new Action(this.target, frame.t, frame.dur);
+				let actionTail = this.actionTail;
+				if (!actionTail) {
+					this.actionHead = this.actionTail = action;
+				} else {
+					this.actionTail = actionTail.next = action;
+					action.prev = actionTail;
+				}
+				if (action.endTime > this.duration) {
+					this.duration = action.endTime;
+				}
+			}
+
+		}
+
+		public setPosition(position: number) {
+			const prevTime = this.prevTime;
+			this.prevTime = position;
+			if (prevTime === position) {
+				return;
+			}
+			if (!this.actionHead) {
+				return;
+			}
+
+			if (position > prevTime) {
+				let action = this.actionHead;
+				let next: Action;
+				while (action) {
+					next = action.next;
+					if (action.endTime < prevTime || action.startTime > position) {
+						action = next;
+						continue;
+					}
+					action.setPosition(position, false);
+					action = next;
+				}
+			} else {// reverse
+				let action = this.actionTail;
+				let prev: Action;
+				while (action) {
+					prev = action.prev;
+					if (action.endTime < position || action.startTime > prevTime) {
+						action = prev;
+						continue;
+					}
+					action.setPosition(position, true);
+					action = prev;
+				}
+			}
+		}
+	}
+
+
 	export enum TweenState {
 		/*
 		* Status in tick list:
