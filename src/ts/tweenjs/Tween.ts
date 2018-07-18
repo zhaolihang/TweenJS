@@ -1,8 +1,8 @@
 namespace createjs {
 
-	export type FreeFuncionType = (...args) => any;
-	export type TargetType = { tweenjs_count?: number } & FreeType;
+	export type FreeFunType = (...args) => any;
 	export type FreeType = { [key: string]: any };
+	export type TargetType = { tweenjs_count?: number } & FreeType;
 
 	export class TweenStep {
 		next: TweenStep;
@@ -29,12 +29,12 @@ namespace createjs {
 	export class TweenAction {
 		scope: any;
 		params: any[];
-		funct: FreeFuncionType;
+		funct: FreeFunType;
 		next: TweenAction;
 		prev: TweenAction;
 		t: number;
 		d: number;
-		constructor(prev: TweenAction, t: number, scope: any, funct: FreeFuncionType, params: any[]) {
+		constructor(prev: TweenAction, t: number, scope: any, funct: FreeFunType, params: any[]) {
 			this.next = null;
 			this.prev = prev;
 			this.t = t;
@@ -45,21 +45,75 @@ namespace createjs {
 		}
 	};
 
-	export interface TweenProps extends AbstractTweenProps {
+	export enum TweenState {
+		/*
+		* Status in tick list:
+		* -1 = removed from list (or to be removed in this tick stack)
+		* 0 = in list
+		* 1 = added to list in the current tick stack
+		*/
+		Removed = -1,
+		InList = 0,
+		NewAdded = 1,
+	}
+
+	export interface TweenProps {
+		useTicks?: boolean;
+		loop?: boolean | number;
+		reversed?: boolean;
+		bounce?: boolean;
+		timeScale?: number;
 		pluginData?: any;
 		paused?: boolean,
 		position?: number,
+
+		onChange?: (e: Event) => void,
+		onComplete?: (e: Event) => void,
 	}
 
-	export class Tween extends AbstractTween {
+	export class Tween extends EventDispatcher {
+		public static readonly Change = 'change';
+		public static readonly Complete = 'complete';
 
-		static inited: boolean;
+		static inited: boolean = false;
 
 		static IGNORE = {};
 		static plugins = null;
 		static tweenHead: Tween = null;
 		static tweenTail: Tween = null;
 		static isInTick = 0;
+
+		static tick(delta: number, paused: boolean) {
+			var tween = Tween.tweenHead;
+			var t = Tween.isInTick = Date.now();
+			while (tween) {
+				var next = tween.next, status = tween.status;
+				tween.lastTick = t;
+
+				if (status === TweenState.NewAdded) {
+					tween.status = TweenState.InList; // new, ignore
+				} else if (status === TweenState.Removed) {
+					Tween.delist(tween);// removed, delist
+				} else if (paused || tween._paused) {
+					/* paused */
+				} else {
+					tween.advance(tween.useTicks ? 1 : delta);
+				}
+
+				tween = next;
+			}
+			Tween.isInTick = 0;
+		};
+
+		static handleEvent(event: Event & FreeType) {
+			if (event.type === Ticker.TickName) {
+				this.tick(event.delta, event.paused);
+			}
+		};
+
+		static get(target: TargetType, props?: TweenProps) {
+			return new Tween(target, props);
+		};
 
 		static register(tween: Tween, paused: boolean) {
 			var target = tween.target;
@@ -108,38 +162,6 @@ namespace createjs {
 			tween.next = tween.prev = null;
 		}
 
-		static get(target: TargetType, props?: TweenProps) {
-			return new Tween(target, props);
-		};
-
-		static tick(delta: number, paused: boolean) {
-			var tween = Tween.tweenHead;
-			var t = Tween.isInTick = Date.now();
-			while (tween) {
-				var next = tween.next, status = tween.status;
-				tween.lastTick = t;
-
-				if (status === TweenState.NewAdded) {
-					tween.status = TweenState.InList; // new, ignore
-				} else if (status === TweenState.Removed) {
-					Tween.delist(tween);// removed, delist
-				} else if (paused || tween._paused) {
-					/* paused */
-				} else {
-					tween.advance(tween.useTicks ? 1 : delta);
-				}
-
-				tween = next;
-			}
-			Tween.isInTick = 0;
-		};
-
-		static handleEvent(event: Event & FreeType) {
-			if (event.type === Ticker.TickName) {
-				this.tick(event.delta, event.paused);
-			}
-		};
-
 		static removeTweens(target: TargetType) {
 			if (!target.tweenjs_count) { return; }
 			var tween = Tween.tweenHead;
@@ -176,21 +198,85 @@ namespace createjs {
 			arr.splice(i, 0, plugin);
 		};
 
-		public pluginData: any;
+		// instance  member
+		private next: Tween;
+		private prev: Tween;
+
 		public target: TargetType;
 		private stepHead: TweenStep;
 		private stepTail: TweenStep;
 
-		private next: Tween;
-		private prev: Tween;
+		private actionHead: TweenAction;
+		private actionTail: TweenAction;
 
-		plugins: any;
-		pluginIds: any;
+		private passive: boolean;
 
-		passive: boolean;
+		loop: number;
+		useTicks: boolean;
+		reversed: boolean;
+		bounce: boolean;
+		timeScale: number;
+		duration: number;
+		position: number;
+		rawPosition: number;
+
+		status: TweenState;
+		lastTick: number;
+
+		private labels: { [lable: string]: number };
+		private labelList?: { label: string, position: number }[];
+
+		public pluginData: any;
+		public plugins: any;
+		public pluginIds: any;
+
+		private _paused: boolean;
+		set paused(value) {
+			Tween.register(this, value);
+		}
+		get paused() {
+			return this._paused;
+		}
+
+		get currentLabel() {
+			return this.getCurrentLabel();
+		}
+
+		public getCurrentLabel(pos?: number) {
+			var labels = this.getLabels();
+			if (pos == null) { pos = this.position; }
+			for (var i = 0, l = labels.length; i < l; i++) { if (pos < labels[i].position) { break; } }
+			return (i === 0) ? null : labels[i - 1].label;
+		};
+
 
 		constructor(target: TargetType, props?: TweenProps) {
-			super(props);
+			super();
+
+			this.loop = 0;
+			this.useTicks = false;
+			this.reversed = false;
+			this.bounce = false;
+			this.timeScale = 1;
+			this.duration = 0;
+			this.position = 0;
+			this.rawPosition = 0;
+			this._paused = true;
+			this.labels = null;
+			this.labelList = null;
+			this.status = TweenState.Removed;
+			this.lastTick = 0;
+
+			if (props) {
+				this.useTicks = !!props.useTicks;
+				this.loop = props.loop === true ? -1 : (props.loop || 0);
+				this.reversed = !!props.reversed;
+				this.bounce = !!props.bounce;
+				this.timeScale = props.timeScale || 1;
+				props.onChange && this.addEventListener(Tween.Change, props.onChange);
+				props.onComplete && this.addEventListener(Tween.Complete, props.onComplete);
+			}
+
 			this.target = target;
 
 			this.next = null;
@@ -392,7 +478,7 @@ namespace createjs {
 			return this.stepTail = (this.stepTail.next = step);// 放到链表的最后
 		};
 
-		private addAction(scope: any, funct: FreeFuncionType, params: any) {
+		private addAction(scope: any, funct: FreeFunType, params: any) {
 			var action = new TweenAction(this.actionTail, this.duration, scope, funct, params);
 			if (this.actionTail) { this.actionTail.next = action; }
 			else { this.actionHead = action; }
@@ -400,11 +486,178 @@ namespace createjs {
 			return this;
 		};
 
+		public advance(delta: number) {
+			this.setPosition(this.rawPosition + delta * this.timeScale, false, false);
+		};
+
+		public setPosition(rawPosition: number, ignoreActions: boolean, jump: boolean): void {
+
+			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
+			var loop = 0, t = 0, end = false;
+
+
+			if (d === 0) {
+				// deal with 0 length tweens.
+				end = true;
+			} else {
+				loop = rawPosition / d | 0;// 向下取整
+				t = rawPosition - loop * d;
+
+				end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
+				if (end) {
+					rawPosition = (t = d) * (loop = loopCount) + d;
+				}
+				if (rawPosition === prevRawPos) {
+					return;// no need to update
+				}
+
+				if (!this.reversed !== !(this.bounce && loop % 2)) {// current loop is reversed
+					t = d - t;
+				}
+			}
+
+			// set this in advance in case an action modifies position:
+			this.position = t;
+			this.rawPosition = rawPosition;
+
+			this.updatePosition(end);
+			if (end) {
+				this.paused = true;
+			}
+
+			if (!ignoreActions) {
+				this.runActions(prevRawPos, rawPosition, jump, !jump);
+			}
+
+			// this.dispatchEvent(Tween.Change);
+			if (end) {
+				this.dispatchEvent(Tween.Complete);
+			}
+		};
+
+		public calculatePosition(rawPosition: number) {
+			// largely duplicated from setPosition, but necessary to avoid having to instantiate generic objects to pass values (end, loop, position) back.
+			var d = this.duration, loopCount = this.loop, loop = 0, t = 0;
+
+			if (d === 0) { return 0; }
+			if (loopCount !== -1 && rawPosition >= loopCount * d + d) { t = d; loop = loopCount } // end
+			else if (rawPosition < 0) { t = 0; }
+			else { loop = rawPosition / d | 0; t = rawPosition - loop * d; }
+
+			var rev = !this.reversed !== !(this.bounce && loop % 2); // current loop is reversed
+			return rev ? d - t : t;
+		};
+
+		public getLabels() {
+			var list = this.labelList;
+			if (!list) {
+				list = this.labelList = [];
+				var labels = this.labels;
+				for (var n in labels) {
+					list.push({ label: n, position: labels[n] });
+				}
+				list.sort(function (a, b) { return a.position - b.position; });
+			}
+			return list;
+		};
+
+		public setLabels(labels: { [lable: string]: number }) {
+			this.labels = labels;
+			this.labelList = null;
+		};
+
+		public addLabel(label: string, position: number) {
+			if (!this.labels) { this.labels = {}; }
+			this.labels[label] = position;
+			var list = this.labelList;
+			if (list) {
+				for (var i = 0, l = list.length; i < l; i++) { if (position < list[i].position) { break; } }
+				list.splice(i, 0, { label: label, position: position });
+			}
+		};
+
+		public gotoAndPlay(positionOrLabel: number | string) {
+			this.paused = false;
+			this.goto(positionOrLabel);
+		};
+
+		public gotoAndStop(positionOrLabel: number | string) {
+			this.paused = true;
+			this.goto(positionOrLabel);
+		};
+
+		public resolve(positionOrLabel: number | string) {
+			var pos = Number(positionOrLabel);
+			if (isNaN(pos)) { pos = this.labels && this.labels[positionOrLabel]; }
+			return pos;
+		};
+
+		private goto(positionOrLabel: number | string) {
+			var pos = this.resolve(positionOrLabel);
+			if (pos != null) { this.setPosition(pos, false, true); }
+		};
+
+		public runActions(startRawPos: number, endRawPos: number, jump: boolean, includeStart: boolean) {
+			// runs actions between startPos & endPos. Separated to support action deferral.
+
+			//console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
+
+			// if we don't have any actions, and we're not a Timeline, then return:
+			// TODO: a cleaner way to handle this would be to override this method in Tween, but I'm not sure it's worth the overhead.
+			if (!this.actionHead) {
+				return;
+			}
+
+			var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
+			var loop0: number, loop1: number, t0: number, t1: number;
+
+			if (d === 0) {
+				// deal with 0 length tweens:
+				loop0 = loop1 = t0 = t1 = 0;
+				reversed = bounce = false;
+			} else {
+				loop0 = startRawPos / d | 0;
+				loop1 = endRawPos / d | 0;
+				t0 = startRawPos - loop0 * d;
+				t1 = endRawPos - loop1 * d;
+			}
+
+			// catch positions that are past the end:
+			if (loopCount !== -1) {
+				if (loop1 > loopCount) { t1 = d; loop1 = loopCount; }
+				if (loop0 > loopCount) { t0 = d; loop0 = loopCount; }
+			}
+
+			// special cases:
+			if (jump) { return this.runActionsRange(t1, t1, jump, includeStart); } // jump.
+			else if (loop0 === loop1 && t0 === t1 && !jump && !includeStart) { return; } // no actions if the position is identical and we aren't including the start
+			else if (loop0 === -1) { loop0 = t0 = 0; } // correct the -1 value for first advance, important with useTicks.
+
+			var dir = (startRawPos <= endRawPos), loop = loop0;
+			do {
+				var rev = !reversed !== !(bounce && loop % 2);
+
+				var start = (loop === loop0) ? t0 : dir ? 0 : d;
+				var end = (loop === loop1) ? t1 : dir ? d : 0;
+
+				if (rev) {
+					start = d - start;
+					end = d - end;
+				}
+
+				if (bounce && loop !== loop0 && start === end) { /* bounced onto the same time/frame, don't re-execute end actions */ }
+				else if (this.runActionsRange(start, end, jump, includeStart || (loop !== loop0 && !bounce))) { return true; }
+
+				includeStart = false;
+			} while ((dir && ++loop <= loop1) || (!dir && --loop >= loop1));
+		};
+
 		private cloneProps(props) {
 			var o = {};
 			for (var n in props) { o[n] = props[n]; }
 			return o;
 		};
+
 
 		public toString() {
 			return "[Tween]";

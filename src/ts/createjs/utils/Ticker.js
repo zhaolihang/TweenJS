@@ -40,7 +40,7 @@ var createjs;
     Ticker._pausedTime = 0;
     Ticker._ticks = 0;
     Ticker._pausedTicks = 0;
-    Ticker._interval = 50;
+    Ticker._interval = 1 / 60 * 1000;
     Ticker._lastTime = 0;
     Ticker._times = null;
     Ticker._tickTimes = null;

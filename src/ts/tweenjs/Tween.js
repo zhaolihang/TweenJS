@@ -39,10 +39,44 @@ var createjs;
     }());
     createjs.TweenAction = TweenAction;
     ;
+    var TweenState;
+    (function (TweenState) {
+        /*
+        * Status in tick list:
+        * -1 = removed from list (or to be removed in this tick stack)
+        * 0 = in list
+        * 1 = added to list in the current tick stack
+        */
+        TweenState[TweenState["Removed"] = -1] = "Removed";
+        TweenState[TweenState["InList"] = 0] = "InList";
+        TweenState[TweenState["NewAdded"] = 1] = "NewAdded";
+    })(TweenState = createjs.TweenState || (createjs.TweenState = {}));
     var Tween = /** @class */ (function (_super) {
         __extends(Tween, _super);
         function Tween(target, props) {
-            var _this = _super.call(this, props) || this;
+            var _this = _super.call(this) || this;
+            _this.loop = 0;
+            _this.useTicks = false;
+            _this.reversed = false;
+            _this.bounce = false;
+            _this.timeScale = 1;
+            _this.duration = 0;
+            _this.position = 0;
+            _this.rawPosition = 0;
+            _this._paused = true;
+            _this.labels = null;
+            _this.labelList = null;
+            _this.status = TweenState.Removed;
+            _this.lastTick = 0;
+            if (props) {
+                _this.useTicks = !!props.useTicks;
+                _this.loop = props.loop === true ? -1 : (props.loop || 0);
+                _this.reversed = !!props.reversed;
+                _this.bounce = !!props.bounce;
+                _this.timeScale = props.timeScale || 1;
+                props.onChange && _this.addEventListener(Tween.Change, props.onChange);
+                props.onComplete && _this.addEventListener(Tween.Complete, props.onComplete);
+            }
             _this.target = target;
             _this.next = null;
             _this.prev = null;
@@ -68,6 +102,39 @@ var createjs;
             }
             return _this;
         }
+        Tween.tick = function (delta, paused) {
+            var tween = Tween.tweenHead;
+            var t = Tween.isInTick = Date.now();
+            while (tween) {
+                var next = tween.next, status = tween.status;
+                tween.lastTick = t;
+                if (status === TweenState.NewAdded) {
+                    tween.status = TweenState.InList; // new, ignore
+                }
+                else if (status === TweenState.Removed) {
+                    Tween.delist(tween); // removed, delist
+                }
+                else if (paused || tween._paused) {
+                    /* paused */
+                }
+                else {
+                    tween.advance(tween.useTicks ? 1 : delta);
+                }
+                tween = next;
+            }
+            Tween.isInTick = 0;
+        };
+        ;
+        Tween.handleEvent = function (event) {
+            if (event.type === createjs.Ticker.TickName) {
+                this.tick(event.delta, event.paused);
+            }
+        };
+        ;
+        Tween.get = function (target, props) {
+            return new Tween(target, props);
+        };
+        ;
         Tween.register = function (tween, paused) {
             var target = tween.target;
             if (!paused && tween._paused) {
@@ -83,7 +150,7 @@ var createjs;
                     Tween.tweenTail = tail.next = tween;
                     tween.prev = tail;
                 }
-                tween.status = Tween.isInTick ? createjs.TweenState.NewAdded : createjs.TweenState.InList;
+                tween.status = Tween.isInTick ? TweenState.NewAdded : TweenState.InList;
                 if (!Tween.inited) {
                     if (createjs.Ticker) {
                         createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);
@@ -99,7 +166,7 @@ var createjs;
                 if (!Tween.isInTick || tween.lastTick === Tween.isInTick) {
                     Tween.delist(tween);
                 }
-                tween.status = createjs.TweenState.Removed;
+                tween.status = TweenState.Removed;
             }
             tween._paused = paused;
         };
@@ -120,39 +187,6 @@ var createjs;
             } // was head.
             tween.next = tween.prev = null;
         };
-        Tween.get = function (target, props) {
-            return new Tween(target, props);
-        };
-        ;
-        Tween.tick = function (delta, paused) {
-            var tween = Tween.tweenHead;
-            var t = Tween.isInTick = Date.now();
-            while (tween) {
-                var next = tween.next, status = tween.status;
-                tween.lastTick = t;
-                if (status === createjs.TweenState.NewAdded) {
-                    tween.status = createjs.TweenState.InList; // new, ignore
-                }
-                else if (status === createjs.TweenState.Removed) {
-                    Tween.delist(tween); // removed, delist
-                }
-                else if (paused || tween._paused) {
-                    /* paused */
-                }
-                else {
-                    tween.advance(tween.useTicks ? 1 : delta);
-                }
-                tween = next;
-            }
-            Tween.isInTick = 0;
-        };
-        ;
-        Tween.handleEvent = function (event) {
-            if (event.type === createjs.Ticker.TickName) {
-                this.tick(event.delta, event.paused);
-            }
-        };
-        ;
         Tween.removeTweens = function (target) {
             if (!target.tweenjs_count) {
                 return;
@@ -195,6 +229,36 @@ var createjs;
                 }
             }
             arr.splice(i, 0, plugin);
+        };
+        ;
+        Object.defineProperty(Tween.prototype, "paused", {
+            get: function () {
+                return this._paused;
+            },
+            set: function (value) {
+                Tween.register(this, value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tween.prototype, "currentLabel", {
+            get: function () {
+                return this.getCurrentLabel();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Tween.prototype.getCurrentLabel = function (pos) {
+            var labels = this.getLabels();
+            if (pos == null) {
+                pos = this.position;
+            }
+            for (var i = 0, l = labels.length; i < l; i++) {
+                if (pos < labels[i].position) {
+                    break;
+                }
+            }
+            return (i === 0) ? null : labels[i - 1].label;
         };
         ;
         Tween.prototype.wait = function (duration, passive) {
@@ -399,6 +463,186 @@ var createjs;
             return this;
         };
         ;
+        Tween.prototype.advance = function (delta) {
+            this.setPosition(this.rawPosition + delta * this.timeScale, false, false);
+        };
+        ;
+        Tween.prototype.setPosition = function (rawPosition, ignoreActions, jump) {
+            var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
+            var loop = 0, t = 0, end = false;
+            if (d === 0) {
+                // deal with 0 length tweens.
+                end = true;
+            }
+            else {
+                loop = rawPosition / d | 0; // 向下取整
+                t = rawPosition - loop * d;
+                end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
+                if (end) {
+                    rawPosition = (t = d) * (loop = loopCount) + d;
+                }
+                if (rawPosition === prevRawPos) {
+                    return; // no need to update
+                }
+                if (!this.reversed !== !(this.bounce && loop % 2)) {
+                    t = d - t;
+                }
+            }
+            // set this in advance in case an action modifies position:
+            this.position = t;
+            this.rawPosition = rawPosition;
+            this.updatePosition(end);
+            if (end) {
+                this.paused = true;
+            }
+            if (!ignoreActions) {
+                this.runActions(prevRawPos, rawPosition, jump, !jump);
+            }
+            // this.dispatchEvent(Tween.Change);
+            if (end) {
+                this.dispatchEvent(Tween.Complete);
+            }
+        };
+        ;
+        Tween.prototype.calculatePosition = function (rawPosition) {
+            // largely duplicated from setPosition, but necessary to avoid having to instantiate generic objects to pass values (end, loop, position) back.
+            var d = this.duration, loopCount = this.loop, loop = 0, t = 0;
+            if (d === 0) {
+                return 0;
+            }
+            if (loopCount !== -1 && rawPosition >= loopCount * d + d) {
+                t = d;
+                loop = loopCount;
+            } // end
+            else if (rawPosition < 0) {
+                t = 0;
+            }
+            else {
+                loop = rawPosition / d | 0;
+                t = rawPosition - loop * d;
+            }
+            var rev = !this.reversed !== !(this.bounce && loop % 2); // current loop is reversed
+            return rev ? d - t : t;
+        };
+        ;
+        Tween.prototype.getLabels = function () {
+            var list = this.labelList;
+            if (!list) {
+                list = this.labelList = [];
+                var labels = this.labels;
+                for (var n in labels) {
+                    list.push({ label: n, position: labels[n] });
+                }
+                list.sort(function (a, b) { return a.position - b.position; });
+            }
+            return list;
+        };
+        ;
+        Tween.prototype.setLabels = function (labels) {
+            this.labels = labels;
+            this.labelList = null;
+        };
+        ;
+        Tween.prototype.addLabel = function (label, position) {
+            if (!this.labels) {
+                this.labels = {};
+            }
+            this.labels[label] = position;
+            var list = this.labelList;
+            if (list) {
+                for (var i = 0, l = list.length; i < l; i++) {
+                    if (position < list[i].position) {
+                        break;
+                    }
+                }
+                list.splice(i, 0, { label: label, position: position });
+            }
+        };
+        ;
+        Tween.prototype.gotoAndPlay = function (positionOrLabel) {
+            this.paused = false;
+            this.goto(positionOrLabel);
+        };
+        ;
+        Tween.prototype.gotoAndStop = function (positionOrLabel) {
+            this.paused = true;
+            this.goto(positionOrLabel);
+        };
+        ;
+        Tween.prototype.resolve = function (positionOrLabel) {
+            var pos = Number(positionOrLabel);
+            if (isNaN(pos)) {
+                pos = this.labels && this.labels[positionOrLabel];
+            }
+            return pos;
+        };
+        ;
+        Tween.prototype.goto = function (positionOrLabel) {
+            var pos = this.resolve(positionOrLabel);
+            if (pos != null) {
+                this.setPosition(pos, false, true);
+            }
+        };
+        ;
+        Tween.prototype.runActions = function (startRawPos, endRawPos, jump, includeStart) {
+            // runs actions between startPos & endPos. Separated to support action deferral.
+            //console.log(this.passive === false ? " > Tween" : "Timeline", "run", startRawPos, endRawPos, jump, includeStart);
+            // if we don't have any actions, and we're not a Timeline, then return:
+            // TODO: a cleaner way to handle this would be to override this method in Tween, but I'm not sure it's worth the overhead.
+            if (!this.actionHead) {
+                return;
+            }
+            var d = this.duration, reversed = this.reversed, bounce = this.bounce, loopCount = this.loop;
+            var loop0, loop1, t0, t1;
+            if (d === 0) {
+                // deal with 0 length tweens:
+                loop0 = loop1 = t0 = t1 = 0;
+                reversed = bounce = false;
+            }
+            else {
+                loop0 = startRawPos / d | 0;
+                loop1 = endRawPos / d | 0;
+                t0 = startRawPos - loop0 * d;
+                t1 = endRawPos - loop1 * d;
+            }
+            // catch positions that are past the end:
+            if (loopCount !== -1) {
+                if (loop1 > loopCount) {
+                    t1 = d;
+                    loop1 = loopCount;
+                }
+                if (loop0 > loopCount) {
+                    t0 = d;
+                    loop0 = loopCount;
+                }
+            }
+            // special cases:
+            if (jump) {
+                return this.runActionsRange(t1, t1, jump, includeStart);
+            } // jump.
+            else if (loop0 === loop1 && t0 === t1 && !jump && !includeStart) {
+                return;
+            } // no actions if the position is identical and we aren't including the start
+            else if (loop0 === -1) {
+                loop0 = t0 = 0;
+            } // correct the -1 value for first advance, important with useTicks.
+            var dir = (startRawPos <= endRawPos), loop = loop0;
+            do {
+                var rev = !reversed !== !(bounce && loop % 2);
+                var start = (loop === loop0) ? t0 : dir ? 0 : d;
+                var end = (loop === loop1) ? t1 : dir ? d : 0;
+                if (rev) {
+                    start = d - start;
+                    end = d - end;
+                }
+                if (bounce && loop !== loop0 && start === end) { }
+                else if (this.runActionsRange(start, end, jump, includeStart || (loop !== loop0 && !bounce))) {
+                    return true;
+                }
+                includeStart = false;
+            } while ((dir && ++loop <= loop1) || (!dir && --loop >= loop1));
+        };
+        ;
         Tween.prototype.cloneProps = function (props) {
             var o = {};
             for (var n in props) {
@@ -411,13 +655,16 @@ var createjs;
             return "[Tween]";
         };
         ;
+        Tween.Change = 'change';
+        Tween.Complete = 'complete';
+        Tween.inited = false;
         Tween.IGNORE = {};
         Tween.plugins = null;
         Tween.tweenHead = null;
         Tween.tweenTail = null;
         Tween.isInTick = 0;
         return Tween;
-    }(createjs.AbstractTween));
+    }(createjs.EventDispatcher));
     createjs.Tween = Tween;
 })(createjs || (createjs = {}));
 //# sourceMappingURL=Tween.js.map
