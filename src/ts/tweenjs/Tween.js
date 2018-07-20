@@ -279,7 +279,7 @@ var createjs;
         */
         TweenState[TweenState["Removed"] = -1] = "Removed";
         TweenState[TweenState["InList"] = 0] = "InList";
-        TweenState[TweenState["NewAdded"] = 1] = "NewAdded";
+        TweenState[TweenState["NewAdd"] = 1] = "NewAdd";
     })(TweenState = createjs.TweenState || (createjs.TweenState = {}));
     var Tween = /** @class */ (function (_super) {
         __extends(Tween, _super);
@@ -335,7 +335,7 @@ var createjs;
             while (tween) {
                 var next = tween.next, status = tween.status;
                 tween.lastTick = t;
-                if (status === TweenState.NewAdded) {
+                if (status === TweenState.NewAdd) {
                     tween.status = TweenState.InList; // new, ignore
                 }
                 else if (status === TweenState.Removed) {
@@ -377,7 +377,7 @@ var createjs;
                     Tween.tweenTail = tail.next = tween;
                     tween.prev = tail;
                 }
-                tween.status = Tween.isInTick ? TweenState.NewAdded : TweenState.InList;
+                tween.status = Tween.isInTick ? TweenState.NewAdd : TweenState.InList;
                 if (!Tween.inited) {
                     if (createjs.Ticker) {
                         createjs.Ticker.addEventListener(createjs.Ticker.TickName, Tween);

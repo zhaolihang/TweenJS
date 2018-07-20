@@ -332,7 +332,7 @@ namespace createjs {
 		*/
 		Removed = -1,
 		InList = 0,
-		NewAdded = 1,
+		NewAdd = 1,
 	}
 
 	export interface TweenProps {
@@ -368,7 +368,7 @@ namespace createjs {
 				var next = tween.next, status = tween.status;
 				tween.lastTick = t;
 
-				if (status === TweenState.NewAdded) {
+				if (status === TweenState.NewAdd) {
 					tween.status = TweenState.InList; // new, ignore
 				} else if (status === TweenState.Removed) {
 					Tween.delist(tween);// removed, delist
@@ -410,7 +410,7 @@ namespace createjs {
 					tween.prev = tail;
 				}
 
-				tween.status = Tween.isInTick ? TweenState.NewAdded : TweenState.InList;
+				tween.status = Tween.isInTick ? TweenState.NewAdd : TweenState.InList;
 
 				if (!Tween.inited) {
 					if (Ticker) {
