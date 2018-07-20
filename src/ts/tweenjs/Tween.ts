@@ -46,7 +46,6 @@ namespace createjs {
 	};
 
 
-
 	export class Action { // 基类
 
 		public next: Action = null;
@@ -93,7 +92,7 @@ namespace createjs {
 		}
 	};
 
-	export class MoveBy extends Action {
+	export class MoveByX extends Action {
 
 		private lastDeltaValue = 0;
 		constructor(target: any, startTime: number, duration: number, private deltaValue: number) {
@@ -106,11 +105,12 @@ namespace createjs {
 		protected update(ratio: number, isReverse: boolean) {
 			let currDeltaValue = ratio * this.deltaValue;
 			let delta = currDeltaValue - this.lastDeltaValue;
+			this.lastDeltaValue = currDeltaValue;
 			this.target.x += delta;
 		}
 	}
 
-	export interface KeyFrameData { t: number; dur: number; type: number; v: any; }
+	export interface KeyFrameData { t: number; dur: number; type: KeyFrameType; v: any; ease?: EaseFun; }
 	export interface MyTweenOptions {
 		loop?: number,
 		useTicks?: boolean,
@@ -118,8 +118,38 @@ namespace createjs {
 		bounce?: boolean,
 		timeScale?: number,
 	}
+	export enum KeyFrameType { // maybe faster use number
+		MoveToX = 'MoveToX',
+		MoveToY = 'MoveToY',
+		ScaleToX = 'ScaleToX',
+		ScaleToY = 'ScaleToY',
+		OpacityTo = 'OpacityTo',
+		RotationTo = 'RotationTo',
 
-	export class MyTween extends EventDispatcher {
+		MoveByX = 'MoveByX',
+		MoveByY = 'MoveByY',
+		ScaleByX = 'ScaleByX',
+		ScaleByY = 'ScaleByY',
+		OpacityBy = 'OpacityBy',
+		RotationBy = 'RotationBy',
+	}
+	export const ActionConstructorMap = {
+		// [KeyFrameType.MoveToX]: MoveToX,
+		// [KeyFrameType.MoveToY]: MoveToY,
+		// [KeyFrameType.ScaleToX]: ScaleToX,
+		// [KeyFrameType.ScaleToY]: ScaleToY,
+		// [KeyFrameType.OpacityTo]: OpacityTo,
+		// [KeyFrameType.RotationTo]: RotationTo,
+
+		[KeyFrameType.MoveByX]: MoveByX,
+		// [KeyFrameType.MoveByY]: MoveByY,
+		// [KeyFrameType.ScaleByX]: ScaleByX,
+		// [KeyFrameType.ScaleByY]: ScaleByY,
+		// [KeyFrameType.OpacityBy]: OpacityBy,
+		// [KeyFrameType.RotationBy]: RotationBy,
+	};
+
+	export class MyTween {
 		public static readonly Complete = 'complete';
 		public static isInTick = 0;
 
@@ -144,7 +174,7 @@ namespace createjs {
 		private actionTail: Action = null;
 
 		private prevTime = 0;
-		private duration = 0;
+		readonly duration: number;
 
 		private rawPosition = 0;
 		public lastTick = 0;
@@ -158,7 +188,6 @@ namespace createjs {
 		}
 
 		constructor(target: any, frames: KeyFrameData[], options?: MyTweenOptions) {
-			super();
 			this.target = target;
 
 			this.loop = 0;
@@ -178,7 +207,7 @@ namespace createjs {
 			if (!frames || frames.length === 0) {
 				throw "frames 没有数据!!!";
 			}
-			this.initActions(frames);
+			this.duration = this.initActions(frames);
 		}
 
 		private initActions(frames: KeyFrameData[]) {
@@ -186,8 +215,14 @@ namespace createjs {
 				return a.t - b.t;
 			});
 
+			let duration: number = 0;
 			for (const frame of frames) {
-				let action = new Action(this.target, frame.t, frame.dur);
+				let ClassContr = ActionConstructorMap[frame.type];
+				if (!ClassContr) {
+					continue;
+				}
+				let action = new ClassContr(this.target, frame.t, frame.dur, frame.v);
+				action.ease = frame.ease;
 				let actionTail = this.actionTail;
 				if (!actionTail) {
 					this.actionHead = this.actionTail = action;
@@ -195,14 +230,14 @@ namespace createjs {
 					this.actionTail = actionTail.next = action;
 					action.prev = actionTail;
 				}
-				if (action.endTime > this.duration) {
-					this.duration = action.endTime;
+				if (action.endTime > duration) {
+					duration = action.endTime;
 				}
 			}
-
+			return duration;
 		}
 
-		public advance(delta: number) {
+		public advance(delta: number) {// delta 可正可负
 			this.setPosition(this.rawPosition + delta * this.timeScale);
 		};
 
@@ -210,8 +245,8 @@ namespace createjs {
 			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
 			var loop = 0, position = 0, end = false;
 
-			if (d === 0) {
-				// deal with 0 length tweens.
+			if (d === 0) {// deal with 0 length tweens.
+
 				let action = this.actionHead;
 				let next: Action;
 				while (action) {
@@ -219,11 +254,11 @@ namespace createjs {
 					action.setPosition(position, false);
 					action = next;
 				}
-
 				this.paused = true;
 				this.dispatchEvent(MyTween.Complete);
 				return;
 			} else {
+
 				loop = rawPosition / d | 0;// 向下取整
 				position = rawPosition - loop * d;
 
@@ -241,8 +276,6 @@ namespace createjs {
 			}
 			this.rawPosition = rawPosition;
 
-			// set this in advance in case an action modifies position:
-
 			const prevTime = this.prevTime;
 			this.prevTime = position;
 			if (prevTime === position) {
@@ -250,6 +283,7 @@ namespace createjs {
 			}
 
 			if (position > prevTime) {
+
 				let action = this.actionHead;
 				let next: Action;
 				while (action) {
@@ -262,6 +296,7 @@ namespace createjs {
 					action = next;
 				}
 			} else {// reverse
+
 				let action = this.actionTail;
 				let prev: Action;
 				while (action) {
@@ -279,6 +314,10 @@ namespace createjs {
 				this.paused = true;
 				this.dispatchEvent(MyTween.Complete);
 			}
+
+		}
+
+		public dispatchEvent(eventName: string) {
 
 		}
 	}

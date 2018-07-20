@@ -77,53 +77,74 @@ var createjs;
     }());
     createjs.Action = Action;
     ;
-    var MoveBy = /** @class */ (function (_super) {
-        __extends(MoveBy, _super);
-        function MoveBy(target, startTime, duration, deltaValue) {
+    var MoveByX = /** @class */ (function (_super) {
+        __extends(MoveByX, _super);
+        function MoveByX(target, startTime, duration, deltaValue) {
             var _this = _super.call(this, target, startTime, duration) || this;
             _this.deltaValue = deltaValue;
             _this.lastDeltaValue = 0;
             return _this;
         }
-        MoveBy.prototype.init = function (ratio, isReverse) {
+        MoveByX.prototype.init = function (ratio, isReverse) {
         };
-        MoveBy.prototype.update = function (ratio, isReverse) {
+        MoveByX.prototype.update = function (ratio, isReverse) {
             var currDeltaValue = ratio * this.deltaValue;
             var delta = currDeltaValue - this.lastDeltaValue;
+            this.lastDeltaValue = currDeltaValue;
             this.target.x += delta;
         };
-        return MoveBy;
+        return MoveByX;
     }(Action));
-    createjs.MoveBy = MoveBy;
-    var MyTween = /** @class */ (function (_super) {
-        __extends(MyTween, _super);
+    createjs.MoveByX = MoveByX;
+    var KeyFrameType;
+    (function (KeyFrameType) {
+        KeyFrameType["MoveToX"] = "MoveToX";
+        KeyFrameType["MoveToY"] = "MoveToY";
+        KeyFrameType["ScaleToX"] = "ScaleToX";
+        KeyFrameType["ScaleToY"] = "ScaleToY";
+        KeyFrameType["OpacityTo"] = "OpacityTo";
+        KeyFrameType["RotationTo"] = "RotationTo";
+        KeyFrameType["MoveByX"] = "MoveByX";
+        KeyFrameType["MoveByY"] = "MoveByY";
+        KeyFrameType["ScaleByX"] = "ScaleByX";
+        KeyFrameType["ScaleByY"] = "ScaleByY";
+        KeyFrameType["OpacityBy"] = "OpacityBy";
+        KeyFrameType["RotationBy"] = "RotationBy";
+    })(KeyFrameType = createjs.KeyFrameType || (createjs.KeyFrameType = {}));
+    createjs.ActionConstructorMap = (_a = {},
+        // [KeyFrameType.MoveToX]: MoveToX,
+        // [KeyFrameType.MoveToY]: MoveToY,
+        // [KeyFrameType.ScaleToX]: ScaleToX,
+        // [KeyFrameType.ScaleToY]: ScaleToY,
+        // [KeyFrameType.OpacityTo]: OpacityTo,
+        // [KeyFrameType.RotationTo]: RotationTo,
+        _a[KeyFrameType.MoveByX] = MoveByX,
+        _a);
+    var MyTween = /** @class */ (function () {
         function MyTween(target, frames, options) {
-            var _this = _super.call(this) || this;
-            _this.actionHead = null;
-            _this.actionTail = null;
-            _this.prevTime = 0;
-            _this.duration = 0;
-            _this.rawPosition = 0;
-            _this.lastTick = 0;
-            _this._paused = false;
-            _this.target = target;
-            _this.loop = 0;
-            _this.useTicks = false;
-            _this.bounce = false;
-            _this.timeScale = 1;
-            _this.rawPosition = 0;
-            _this.lastTick = 0;
+            this.actionHead = null;
+            this.actionTail = null;
+            this.prevTime = 0;
+            this.rawPosition = 0;
+            this.lastTick = 0;
+            this._paused = false;
+            this.target = target;
+            this.loop = 0;
+            this.useTicks = false;
+            this.bounce = false;
+            this.timeScale = 1;
+            this.rawPosition = 0;
+            this.lastTick = 0;
             if (options) {
-                _this.loop = options.loop < 0 ? -1 : (options.loop || 0);
-                _this.useTicks = !!options.useTicks;
-                _this.bounce = !!options.bounce;
-                _this.timeScale = options.timeScale || 1;
+                this.loop = options.loop < 0 ? -1 : (options.loop || 0);
+                this.useTicks = !!options.useTicks;
+                this.bounce = !!options.bounce;
+                this.timeScale = options.timeScale || 1;
             }
             if (!frames || frames.length === 0) {
                 throw "frames 没有数据!!!";
             }
-            _this.initActions(frames);
-            return _this;
+            this.duration = this.initActions(frames);
         }
         MyTween.tick = function (delta, paused, tween) {
             var t = MyTween.isInTick = Date.now();
@@ -148,9 +169,15 @@ var createjs;
             frames.sort(function (a, b) {
                 return a.t - b.t;
             });
+            var duration = 0;
             for (var _i = 0, frames_1 = frames; _i < frames_1.length; _i++) {
                 var frame = frames_1[_i];
-                var action = new Action(this.target, frame.t, frame.dur);
+                var ClassContr = createjs.ActionConstructorMap[frame.type];
+                if (!ClassContr) {
+                    continue;
+                }
+                var action = new ClassContr(this.target, frame.t, frame.dur, frame.v);
+                action.ease = frame.ease;
                 var actionTail = this.actionTail;
                 if (!actionTail) {
                     this.actionHead = this.actionTail = action;
@@ -159,10 +186,11 @@ var createjs;
                     this.actionTail = actionTail.next = action;
                     action.prev = actionTail;
                 }
-                if (action.endTime > this.duration) {
-                    this.duration = action.endTime;
+                if (action.endTime > duration) {
+                    duration = action.endTime;
                 }
             }
+            return duration;
         };
         MyTween.prototype.advance = function (delta) {
             this.setPosition(this.rawPosition + delta * this.timeScale);
@@ -172,7 +200,6 @@ var createjs;
             var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
             var loop = 0, position = 0, end = false;
             if (d === 0) {
-                // deal with 0 length tweens.
                 var action = this.actionHead;
                 var next = void 0;
                 while (action) {
@@ -199,7 +226,6 @@ var createjs;
                 }
             }
             this.rawPosition = rawPosition;
-            // set this in advance in case an action modifies position:
             var prevTime = this.prevTime;
             this.prevTime = position;
             if (prevTime === position) {
@@ -236,10 +262,12 @@ var createjs;
                 this.dispatchEvent(MyTween.Complete);
             }
         };
+        MyTween.prototype.dispatchEvent = function (eventName) {
+        };
         MyTween.Complete = 'complete';
         MyTween.isInTick = 0;
         return MyTween;
-    }(createjs.EventDispatcher));
+    }());
     createjs.MyTween = MyTween;
     var TweenState;
     (function (TweenState) {
@@ -796,5 +824,6 @@ var createjs;
         return Tween;
     }(createjs.EventDispatcher));
     createjs.Tween = Tween;
+    var _a;
 })(createjs || (createjs = {}));
 //# sourceMappingURL=Tween.js.map
