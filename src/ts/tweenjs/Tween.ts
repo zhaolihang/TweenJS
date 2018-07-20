@@ -49,14 +49,13 @@ namespace createjs {
 
 	export class Action { // 基类
 
-		next: Action = null;
-		prev: Action = null;
-
-		ease: EaseFun = null;
+		public next: Action = null;
+		public prev: Action = null;
+		public ease: EaseFun = null;
 
 		protected inited = false;
+		protected target: any;
 
-		target: any;
 		readonly startTime: number; // 时间线的时间
 		readonly endTime: number; // 时间线的时间
 		readonly duration: number;
@@ -80,12 +79,12 @@ namespace createjs {
 			}
 			if (!this.inited) {
 				this.inited = true;
-				this.init();
+				this.init(ratio, isReverse);
 			}
 			this.update(ratio, isReverse);
 		}
 
-		protected init() {
+		protected init(ratio: number, isReverse: boolean) {
 			// override me
 		}
 
@@ -93,6 +92,23 @@ namespace createjs {
 			// override me
 		}
 	};
+
+	export class MoveBy extends Action {
+
+		private lastDeltaValue = 0;
+		constructor(target: any, startTime: number, duration: number, private deltaValue: number) {
+			super(target, startTime, duration);
+		}
+
+		protected init(ratio: number, isReverse: boolean) {
+		}
+
+		protected update(ratio: number, isReverse: boolean) {
+			let currDeltaValue = ratio * this.deltaValue;
+			let delta = currDeltaValue - this.lastDeltaValue;
+			this.target.x += delta;
+		}
+	}
 
 	export interface KeyFrameData { t: number; dur: number; type: number; v: any; }
 	export interface MyTweenOptions {
@@ -103,13 +119,26 @@ namespace createjs {
 		timeScale?: number,
 	}
 
-	export class MyTween {
-		loop: number;
-		useTicks: boolean;
-		reversed: boolean;
-		bounce: boolean;
-		timeScale: number;
-		target: any;
+	export class MyTween extends EventDispatcher {
+		public static readonly Complete = 'complete';
+		public static isInTick = 0;
+
+		static tick(delta: number, paused: boolean, tween: MyTween) { // delta 可正可负
+			var t = MyTween.isInTick = Date.now();
+
+			if (tween) {
+				tween.lastTick = t;
+				tween.advance(tween.useTicks ? 1 : delta);
+			}
+			MyTween.isInTick = 0;
+		};
+
+
+		readonly loop: number;
+		readonly useTicks: boolean;
+		readonly bounce: boolean;
+		public timeScale: number;
+		public target: any;
 
 		private actionHead: Action = null;
 		private actionTail: Action = null;
@@ -117,22 +146,38 @@ namespace createjs {
 		private prevTime = 0;
 		private duration = 0;
 
+		private rawPosition = 0;
+		public lastTick = 0;
+
+		private _paused: boolean = false;
+		set paused(value) {
+			this._paused = value;
+		}
+		get paused() {
+			return this._paused;
+		}
+
 		constructor(target: any, frames: KeyFrameData[], options?: MyTweenOptions) {
+			super();
 			this.target = target;
 
 			this.loop = 0;
 			this.useTicks = false;
-			this.reversed = false;
 			this.bounce = false;
 			this.timeScale = 1;
+
+			this.rawPosition = 0;
+			this.lastTick = 0;
+
 			if (options) {
 				this.loop = options.loop < 0 ? -1 : (options.loop || 0);
 				this.useTicks = !!options.useTicks;
-				this.reversed = !!options.reversed;
 				this.bounce = !!options.bounce;
 				this.timeScale = options.timeScale || 1;
 			}
-
+			if (!frames || frames.length === 0) {
+				throw "frames 没有数据!!!";
+			}
 			this.initActions(frames);
 		}
 
@@ -157,13 +202,50 @@ namespace createjs {
 
 		}
 
-		public setPosition(position: number) {
+		public advance(delta: number) {
+			this.setPosition(this.rawPosition + delta * this.timeScale);
+		};
+
+		public setPosition(rawPosition: number) {
+			var d = this.duration, loopCount = this.loop, prevRawPos = this.rawPosition;
+			var loop = 0, position = 0, end = false;
+
+			if (d === 0) {
+				// deal with 0 length tweens.
+				let action = this.actionHead;
+				let next: Action;
+				while (action) {
+					next = action.next;
+					action.setPosition(position, false);
+					action = next;
+				}
+
+				this.paused = true;
+				this.dispatchEvent(MyTween.Complete);
+				return;
+			} else {
+				loop = rawPosition / d | 0;// 向下取整
+				position = rawPosition - loop * d;
+
+				end = (loopCount !== -1 && rawPosition >= loopCount * d + d);
+				if (end) {
+					rawPosition = (position = d) * (loop = loopCount) + d;
+				}
+				if (rawPosition === prevRawPos) {
+					return;// no need to update
+				}
+
+				if (!!(this.bounce && loop % 2)) {// current loop is reversed
+					position = d - position;
+				}
+			}
+			this.rawPosition = rawPosition;
+
+			// set this in advance in case an action modifies position:
+
 			const prevTime = this.prevTime;
 			this.prevTime = position;
 			if (prevTime === position) {
-				return;
-			}
-			if (!this.actionHead) {
 				return;
 			}
 
@@ -192,6 +274,12 @@ namespace createjs {
 					action = prev;
 				}
 			}
+
+			if (end) {
+				this.paused = true;
+				this.dispatchEvent(MyTween.Complete);
+			}
+
 		}
 	}
 
@@ -360,8 +448,6 @@ namespace createjs {
 		private actionHead: TweenAction;
 		private actionTail: TweenAction;
 
-		private passive: boolean;
-
 		loop: number;
 		useTicks: boolean;
 		reversed: boolean;
@@ -373,9 +459,6 @@ namespace createjs {
 
 		status: TweenState;
 		lastTick: number;
-
-		private labels: { [lable: string]: number };
-		private labelList?: { label: string, position: number }[];
 
 		public pluginData: any;
 		public plugins: any;
@@ -389,18 +472,6 @@ namespace createjs {
 			return this._paused;
 		}
 
-		get currentLabel() {
-			return this.getCurrentLabel();
-		}
-
-		public getCurrentLabel(pos?: number) {
-			var labels = this.getLabels();
-			if (pos == null) { pos = this.position; }
-			for (var i = 0, l = labels.length; i < l; i++) { if (pos < labels[i].position) { break; } }
-			return (i === 0) ? null : labels[i - 1].label;
-		};
-
-
 		constructor(target: TargetType, props?: TweenProps) {
 			super();
 
@@ -413,8 +484,6 @@ namespace createjs {
 			this.position = 0;
 			this.rawPosition = 0;
 			this._paused = true;
-			this.labels = null;
-			this.labelList = null;
 			this.status = TweenState.Removed;
 			this.lastTick = 0;
 
@@ -433,7 +502,6 @@ namespace createjs {
 			this.next = null;
 			this.prev = null;
 			this.pluginData = null;
-			this.passive = false;
 			this.stepHead = new TweenStep(null, 0, 0, {}, null, true);
 			this.stepTail = this.stepHead;
 			this.actionHead = null;
@@ -465,13 +533,8 @@ namespace createjs {
 
 		public to(props: FreeType, duration: number, ease?: EaseFun) {
 			if (duration == null || duration < 0) { duration = 0; }
-			var step = this.addStep(+duration, null, ease);
+			var step = this.addStep(+duration, null, ease, false);
 			this.appendProps(props, step);
-			return this;
-		}
-
-		public label(name: string) {
-			this.addLabel(name, this.duration);
 			return this;
 		}
 
@@ -524,7 +587,9 @@ namespace createjs {
 		};
 
 		private updateTargetProps(step: TweenStep, ratio: number, end: boolean) {
-			if (this.passive = !!step.passive) { return; } // don't update props.
+			if (!!step.passive) {
+				return;  // don't update props.
+			}
 
 			var v, v0, v1, ease: EaseFun;
 			var p0 = step.prev.props;
@@ -573,7 +638,7 @@ namespace createjs {
 
 		private appendProps(props: any, step: TweenStep, stepPlugins?) {
 			var initProps = this.stepHead.props, target = this.target, plugins = Tween.plugins;
-			var n, i, value, initValue, inject;
+			var n, i, value, initValue;
 			var oldStep = step.prev, oldProps = oldStep.props;
 			var stepProps = step.props || (step.props = this.cloneProps(oldProps));
 			var cleanProps = {}; // TODO: is there some way to avoid this additional object?
@@ -699,53 +764,18 @@ namespace createjs {
 			return rev ? d - t : t;
 		};
 
-		public getLabels() {
-			var list = this.labelList;
-			if (!list) {
-				list = this.labelList = [];
-				var labels = this.labels;
-				for (var n in labels) {
-					list.push({ label: n, position: labels[n] });
-				}
-				list.sort(function (a, b) { return a.position - b.position; });
-			}
-			return list;
-		};
-
-		public setLabels(labels: { [lable: string]: number }) {
-			this.labels = labels;
-			this.labelList = null;
-		};
-
-		public addLabel(label: string, position: number) {
-			if (!this.labels) { this.labels = {}; }
-			this.labels[label] = position;
-			var list = this.labelList;
-			if (list) {
-				for (var i = 0, l = list.length; i < l; i++) { if (position < list[i].position) { break; } }
-				list.splice(i, 0, { label: label, position: position });
-			}
-		};
-
-		public gotoAndPlay(positionOrLabel: number | string) {
+		public gotoAndPlay(position: number) {
 			this.paused = false;
-			this.goto(positionOrLabel);
+			this.goto(position);
 		};
 
-		public gotoAndStop(positionOrLabel: number | string) {
+		public gotoAndStop(position: number) {
 			this.paused = true;
-			this.goto(positionOrLabel);
+			this.goto(position);
 		};
 
-		public resolve(positionOrLabel: number | string) {
-			var pos = Number(positionOrLabel);
-			if (isNaN(pos)) { pos = this.labels && this.labels[positionOrLabel]; }
-			return pos;
-		};
-
-		private goto(positionOrLabel: number | string) {
-			var pos = this.resolve(positionOrLabel);
-			if (pos != null) { this.setPosition(pos, false, true); }
+		private goto(position: number) {
+			this.setPosition(position, false, true);
 		};
 
 		public runActions(startRawPos: number, endRawPos: number, jump: boolean, includeStart: boolean) {
